@@ -1,6 +1,6 @@
 # osint-ai-toolkit
 
-> Toolkit OSINT augmenté par l'IA — détection de campagnes d'influence étrangères et contextualisation de menaces CTI.
+> Toolkit OSINT augmenté par l'IA — détection de campagnes d'influence et contextualisation de menaces CTI.
 
 > OSINT toolkit augmented with AI — applications for Cyber Threat Intelligence and Information Warfare analysis.
 
