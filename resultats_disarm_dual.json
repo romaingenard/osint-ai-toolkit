@@ -1,0 +1,82 @@
+[
+  {
+    "input": "Création de 193 portails d'information avec des noms de domaines imitant des médias locaux (pravda-fr.com, pravda-de.com, lugansk-news.ru, crimea-news.com), tous construits sur la même charte graphique et les mêmes rubriques.",
+    "output": "TACTIQUE: TA16 - Establish Legitimacy\nTECHNIQUE(S): T0098 - Establish Inauthentic News Sites / T0098.001 - Create Inauthentic News Sites\nJUSTIFICATION: La création massive de faux sites d'information avec des noms trompeurs imitant des médias légitimes vise à établir une fausse crédibilité pour diffuser de la désinformation.\nCONFIANCE: HIGH"
+  },
+  {
+    "input": "Hébergement de tous les sites sur des serveurs localisés en Russie partageant la même infrastructure (même ASN 49352, même Net ID 178.21.15, même ETag, même favicon hash -200225920).",
+    "output": "TACTIQUE: TA15 - Establish Social Assets\nTECHNIQUE(S): T0092 - Build Network\nJUSTIFICATION: L'utilisation d'une infrastructure commune (même ASN, subnet, ETag et favicon) révèle la construction coordonnée d'un réseau d'actifs numériques, caractéristique de la phase de préparation d'une campagne d'influence.\nCONFIANCE: HIGH"
+  },
+  {
+    "input": "Aucun contenu original produit : réplication massive de textes issus de chaînes Telegram pro-russes, d'agences de presse russes (TASS, RIA Novosti, Izvestia) et de sites officiels d'institutions russes.",
+    "output": "TACTIQUE: TA06 - Develop Content\nTECHNIQUE(S): T0084 - Reuse Existing Content / T0084.001 - Use Copypasta\nJUSTIFICATION: La réplication massive de contenus existants provenant de sources russes sans création originale correspond à une stratégie de réutilisation systématique de contenus pour amplifier des narratifs pro-russes.\nCONFIANCE: HIGH"
+  },
+  {
+    "input": "Publication automatisée à un volume extrême : 152 464 articles en moins de 3 mois sur les 5 sites pravda. Jusqu'à 1 734 articles en un jour pour un seul site. Publication quasi-ininterrompue 24h/24 avec un maximum de 9 contenus par heure sur Telegram.",
+    "output": "TACTIQUE: TA17 - Maximize Exposure\nTECHNIQUE(S): T0049 - Flooding the Information Space / T0049.003 - Bots Amplify via Automated Forwarding and Reposting\nJUSTIFICATION: Le volume extrême de publications (152 464 articles en 3 mois, jusqu'à 1 734/jour) et la cadence ininterrompue 24h/24 correspondent à une stratégie délibérée d'inondation de l'espace informationnel pour maximiser l'exposition et noyer les autres contenus.\nCONFIANCE: HIGH"
+  },
+  {
+    "input": "Test de fonctionnement initial : le 24 juin 2023, pravda-de.com publie 1 687 contenus en une journée alors que les autres sites pravda n'ont encore rien publié. Viginum interprète cela comme un test par l'administrateur.",
+    "output": "TACTIQUE: TA08 - Conduct Pump Priming\nTECHNIQUE(S): T0020 - Trial Content\nJUSTIFICATION: La publication massive de 1 687 contenus en une journée sur un seul site du réseau avant le déploiement sur les autres sites correspond à un test de contenu pour préparer une campagne d'influence.\nCONFIANCE: HIGH"
+  },
+  {
+    "input": "Sélection minutieuse des sources Telegram francophones pro-russes pour pravda-fr.com (20 chaînes identifiées : BrainlessChanel, Vbachir, russiejournal, russosphere, etc.), adaptées par pays.",
+    "output": "TACTIQUE: TA15 - Establish Social Assets\nTECHNIQUE(S): T0092 - Build Network / T0093 - Acquire/Recruit Network\nJUSTIFICATION: La sélection ciblée de 20 chaînes Telegram spécifiques constitue la construction d'un réseau d'assets informationnels coordonnés pour alimenter et amplifier les narratifs via pravda-fr.com.\nCONFIANCE: HIGH"
+  },
+  {
+    "input": "Traduction automatisée des contenus depuis le russe, avec des erreurs caractéristiques (Catherine Colonna désignée comme Le ministre ou La Colonne, vidéos VK conservant leurs titres en cyrillique).",
+    "output": "TACTIQUE: TA06 - Develop Content\nTECHNIQUE(S): T0084.003 - Deceptively Labeled or Translated\nJUSTIFICATION: Les erreurs de traduction automatique (noms propres mal traduits, titres non traduits) révèlent une production de contenu traduit de manière trompeuse depuis une source russe, caractéristique d'une opération d'influence étrangère.\nCONFIANCE: HIGH"
+  },
+  {
+    "input": "Optimisation SEO pour les requêtes longue traîne : apparition en tête des résultats Google pour des combinaisons de mots-clés peu concurrentielles (ex : dirigeant syndical palestine vers pravda-fr.com en premier résultat).",
+    "output": "TACTIQUE: TA08 - Conduct Pump Priming\nTECHNIQUE(S): T0046 - Use Content Search Engine Optimization\nJUSTIFICATION: L'optimisation pour des mots-clés longue traîne peu concurrentiels est une technique classique de SEO utilisée pour amorcer la visibilité d'un contenu avant sa diffusion massive.\nCONFIANCE: HIGH"
+  },
+  {
+    "input": "Quadrillage informationnel du territoire ukrainien par 41 portails -news.ru ciblant des localités précises (Kherson, Marioupol, Tiraspol), certaines villes stratégiques ayant deux portails. Extension progressive d'est en ouest entre avril et décembre 2022.",
+    "output": "TACTIQUE: TA16 - Establish Legitimacy\nTECHNIQUE(S): T0098 - Establish Inauthentic News Sites / T0101 - Create Localized Content\nJUSTIFICATION: Le déploiement systématique de portails d'information locaux inauthentic ciblant des villes ukrainiennes spécifiques vise à établir une présence informationnelle légitime en apparence tout en diffusant du contenu adapté localement.\nCONFIANCE: HIGH"
+  },
+  {
+    "input": "Diffusion de narratifs pro-Kremlin présentant positivement l'opération militaire spéciale, dénigrant l'Ukraine et ses dirigeants (présentés comme corrompus, nazis, incompétents), critiquant l'Occident collectif.",
+    "output": "TACTIQUE: TA14 - Develop Narratives\nTECHNIQUE(S): T0003 - Leverage Existing Narratives / T0075.001 - Discredit Credible Sources\nJUSTIFICATION: La diffusion de narratifs pro-Kremlin utilise des récits existants (corruption, nazisme) pour discréditer l'Ukraine et ses alliés tout en légitimant l'opération militaire russe.\nCONFIANCE: HIGH"
+  },
+  {
+    "input": "Reprise opportuniste de thématiques d'actualité polarisantes (crises au Niger et au Gabon durant l'été 2023, dénigrement de la présence française au Sahel, promotion de la coopération Russie-Afrique).",
+    "output": "TACTIQUE: TA14 - Develop Narratives\nTECHNIQUE(S): T0003 - Leverage Existing Narratives / T0068 - Respond to Breaking News Event or Active Crisis\nJUSTIFICATION: L'exploitation opportuniste de crises actuelles (Niger, Gabon) pour promouvoir des narratifs anti-français et pro-russes constitue une utilisation stratégique d'événements d'actualité pour développer des récits alignés avec des objectifs géopolitiques.\nCONFIANCE: HIGH"
+  },
+  {
+    "input": "Insertion de pravda-fr.com comme source dans un article Wikipédia sur l'opération Gardien de la prospérité en mer Rouge (par l'utilisateur @Lataupefr, le 23 décembre 2023).",
+    "output": "TACTIQUE: TA11 - Persist in the Information Environment\nTECHNIQUE(S): T0131.001 - Legacy Web Content\nJUSTIFICATION: L'insertion d'un site de désinformation connu (pravda-fr.com) comme source dans Wikipédia exploite la persistance du contenu sur une plateforme de référence pour légitimer une source non fiable.\nCONFIANCE: HIGH"
+  },
+  {
+    "input": "Présence de la balise ZOV dans le code source HTML des sites -news.ru (référence au symbole utilisé par l'armée russe en Ukraine).",
+    "output": "TACTIQUE: TA11 - Persist in the Information Environment\nTECHNIQUE(S): T0129 - Conceal Operational Activity / T0129.003 - Break Association with Content\nJUSTIFICATION: La balise ZOV dans le code source révèle involontairement l'affiliation des sites à l'opération russe, ce qui est une erreur d'OPSEC plutôt qu'une technique d'influence intentionnelle.\nCONFIANCE: HIGH\n\nNote: Bien que ce soit techniquement une erreur d'OPSEC, j'ai classé cela dans le contexte de la dissimulation ratée d'activité opérationnelle, car le framework DISARM se concentre sur les comportements observables dans les opérations d'influence, même quand ils révèlent des failles."
+  },
+  {
+    "input": "Création de comptes VK et Telegram associés à chaque site, avec publication automatisée sur ces plateformes (engagement quasi nul).",
+    "output": "TACTIQUE: TA15 - Establish Social Assets\nTECHNIQUE(S): T0090 - Create Inauthentic Accounts / T0092 - Build Network\nJUSTIFICATION: La création systématique de comptes sur plusieurs plateformes sociales pour chaque site avec publication automatisée et absence d'engagement indique la construction d'un réseau d'actifs sociaux inauthentiques pour diffuser du contenu.\nCONFIANCE: HIGH"
+  },
+  {
+    "input": "Promotion régulière du FSB dans les contenus des sites ciblant la Russie (centaines voire milliers d'articles).",
+    "output": "TACTIQUE: TA02 - Plan Objectives\nTECHNIQUE(S): T0002 - Facilitate State Propaganda\nJUSTIFICATION: La promotion systématique et massive du FSB (service de sécurité russe) sur des sites ciblant la Russie constitue une opération de propagande d'État visant à normaliser et valoriser les services de sécurité russes.\nCONFIANCE: HIGH"
+  },
+  {
+    "input": "Amplification par 304 comptes X automatisés affiliés au dispositif RRN/Doppelgänger, partageant 6 URLs de l'écosystème pravda à partir du 12 octobre 2023.",
+    "output": "TACTIQUE: TA17 - Maximize Exposure\nTECHNIQUE(S): T0049 - Flooding the Information Space / T0049.003 - Bots Amplify via Automated Forwarding and Reposting\nJUSTIFICATION: L'utilisation de 304 comptes automatisés pour amplifier massivement du contenu provenant de l'écosystème RRN/Doppelgänger correspond à une stratégie de flooding automatisé visant à maximiser l'exposition du contenu.\nCONFIANCE: HIGH"
+  },
+  {
+    "input": "Organisation d'un faux rassemblement de patriotes français pro-russes devant la Tour Eiffel (31 août 2023), filmé, publié sur YouTube (chaîne créée le même jour), relayé par des chaînes Telegram pro-russes, puis repris par pravda-fr.com.",
+    "output": "TACTIQUE: TA10 - Drive Offline Activity\nTECHNIQUE(S): T0057 - Organize Events / T0099.001 - Astroturfing\nJUSTIFICATION: L'organisation d'un faux rassemblement créant une illusion de soutien populaire français à la Russie, coordonné avec une chaîne de diffusion préétablie (YouTube→Telegram→pravda-fr) démontre une opération d'astroturfing visant à simuler un mouvement citoyen authentique.\nCONFIANCE: HIGH"
+  },
+  {
+    "input": "Extension du réseau vers quasi tous les États membres de l'UE + Balkans + Afrique (Centrafrique, Burkina Faso, Niger) + Asie (Japon, Taiwan, Corée) entre le 20 et le 26 mars 2024, portant le total à 224 portails.",
+    "output": "TACTIQUE: TA15 - Establish Social Assets\nTECHNIQUE(S): T0092 - Build Network / T0093 - Acquire/Recruit Network\nJUSTIFICATION: L'expansion rapide et géographique du réseau de portails vers de multiples régions (UE, Balkans, Afrique, Asie) en seulement 6 jours démontre une construction délibérée d'infrastructure de réseau pour établir des actifs sociaux à grande échelle.\nCONFIANCE: HIGH"
+  },
+  {
+    "input": "TigerWeb (entreprise de développement web basée en Crimée, fondée par Evgueni Chevtchenko) identifiée comme créateur et administrateur technique du réseau. Logo TigerWeb visible dans des archives, email topnewsua7@gmail.com lié à Chevtchenko. Tentative de dissimulation ultérieure de cette implication.",
+    "output": "TACTIQUE: TA11 - Persist in the Information Environment\nTECHNIQUE(S): T0130 - Conceal Infrastructure / T0130.001 - Conceal Sponsorship\nJUSTIFICATION: TigerWeb a tenté de dissimuler son rôle d'administrateur technique du réseau après exposition, démontrant une volonté de cacher l'infrastructure et les sponsors de l'opération.\nCONFIANCE: HIGH"
+  },
+  {
+    "input": "Liens techniques avec le réseau Inforos (considéré par les États-Unis comme administré par le GRU) : caractéristiques techniques similaires, calendrier de création de sites parallèle, partage de contenus liés à Inforos.",
+    "output": "TACTIQUE: TA16 - Establish Legitimacy\nTECHNIQUE(S): T0092 - Build Network / T0098.002 - Leverage Existing Inauthentic News Sites\nJUSTIFICATION: Les liens techniques et le partage de contenus avec Inforos indiquent une construction de réseau coordonnée pour établir la légitimité en s'appuyant sur une infrastructure de désinformation existante.\nCONFIANCE: HIGH"
+  }
+]

@@ -205,3 +205,13 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+#Exercices d'apprentissage (local uniquement)
+exercices/
+
+
+# Base de données locales
+data/*.db
+
+# Corpus collectés (OPSEC)
+data/li_corpus/
