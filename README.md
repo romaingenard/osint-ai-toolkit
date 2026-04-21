@@ -14,17 +14,18 @@ Modular Python framework built around a shared core (API collection, SQLite stor
 ## Repository structure
 ```
 osint-ai-toolkit/
-├── core/        # Shared modules: API collection, SQLite storage, LLM analysis
-├── cti/         # CTI application: enrichment, pivoting, brief generation
-├── li/          # LI application: detection, DISARM classification, reporting
-├── data/        # Sample input data
-├── outputs/     # Sample results
+├── core/          # Shared modules: API collection, SQLite storage, LLM analysis
+├── cti/           # CTI application: enrichment, pivoting, brief generation
+├── li/            # LI application: detection, DISARM classification, reporting
+├── tests/         # Test scripts and exercise outputs
+├── data/          # Sample input data
+├── outputs/       # Sample results
 └── README.md
 ```
 
 ## Status
 
-Work in progress — Phase 1 (March 2026). Core modules and applications under active development.
+Work in progress — Phase 2 (April 2026). Core modules functional, LI and CTI applications under active development.
 
 ## Author
 
