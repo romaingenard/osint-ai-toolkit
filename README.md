@@ -29,4 +29,4 @@ Work in progress — Phase 2 (April 2026). Core modules functional, LI and CTI a
 
 ## Author
 
-Romain Génard — [LinkedIn](https://linkedin.com/in/romaingenard)
+Romain Génard — [LinkedIn](https://www.linkedin.com/in/romain-génard-5ab80013a/)
