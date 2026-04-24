@@ -1,0 +1,13 @@
+# Corpus d'entités — "Narratifs anti-français au Sahel 2025-2026".
+# Les lignes commençant par # sont des exemples non parsés. Retirer le # pour activer une entité.
+# producer_category : A (russes) / B (institutionnels AES) / C (amplificateurs cooptés) / D (locaux autonomie variable).
+# country : MLI / BFA / NER / SUPRA (supra-national).
+# collector : wordpress_api / html_generic / telegram_channel / manual_event.
+# role : primary (corpus d'analyse) / d3lta_validation (doublon multilingue pour validation reformulation).
+# default_language : code ISO 639-1 (fr, ru, en, ar). Choix éditorial par entité, pas de détection automatique.
+# Pour une entité multilingue (ex : afrinz.ru FR + RU), créer deux entités distinctes avec slugs distincts.
+entity_id,name,url,platform,producer_category,country,collector,html_title_selector,html_date_selector,html_content_selector,rate_limit_seconds,status,default_language,role,notes
+# afrinz-ru-fr,African Initiative (version française),https://afrinz.ru/fr,web,A,SUPRA,wordpress_api,,,,3.0,active,fr,primary,exemple — à remplacer — API WP REST utilisée (cf. rapport Viginum African Initiative juin 2025)
+# rtb-burkina,Radiodiffusion Télévision du Burkina,https://www.rtb.bf,web,B,BFA,html_generic,,,,2.0,active,fr,primary,exemple — à remplacer — sélecteurs CSS à renseigner après inspection manuelle du site
+# ai-telegram-fr,African Initiative - chaîne Telegram francophone,https://t.me/s/african_initiative_fr,telegram,A,SUPRA,telegram_channel,,,,2.0,active,fr,primary,exemple — à remplacer — handle Telegram fictif pour le template
+# evenement-tiktok-voix-faso,Événement TikTok - La Voix du Faso (capture ponctuelle),https://www.tiktok.com/@lavoixdufaso,tiktok,D,BFA,manual_event,,,,5.0,active,fr,primary,exemple — à remplacer — collecte ponctuelle (URL unique) saisie manuellement ensuite

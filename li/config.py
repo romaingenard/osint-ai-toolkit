@@ -1,373 +1,508 @@
-# li/config.py
-# Configuration du workflow Lutte Informationnelle - Storm-1516
-# Sources, prompts DISARM, paramètres de détection de coordination
+"""li/config.py — paramètres, constantes méthodologiques, prompts LLM.
 
-from datetime import datetime
-import json
+Refonte : 24 avril 2026.
+Projet : "Narratifs anti-français au Sahel 2025-2026 : cartographie comparée
+de l'écosystème informationnel pro-AES au Mali, Burkina Faso et Niger."
 
-# === MÉTADONNÉES DU PROJET ===
-PROJECT_NAME = "Storm-1516 France"
+Cadrage méthodologique complet dans le doc 05 du projet. Les décisions A/B/C/D
+sont tracées dans les constantes et prompts ci-dessous.
+
+Ne contient PAS :
+- la matrice DISARM (externalisée dans li/disarm_matrix.md, chargée via
+  load_disarm_matrix()) ;
+- les entités du corpus (externalisées dans data/entities.csv, chargées via
+  load_entities()).
+"""
+
+import csv
+import functools
+from pathlib import Path
+
+
+# === MÉTADONNÉES DU PROJET ================================================
+
+PROJECT_NAME = "Narratifs anti-français au Sahel 2025-2026"
+
+# Période d'observation par défaut. À figer définitivement en semaine 5 du
+# planning du rapport. Modifiable ici sans toucher au reste du code :
+# detect.py lit OBSERVATION_PERIOD comme default de son CLI.
 OBSERVATION_PERIOD = {
     "start": "2026-02-01",
-    "end": "2026-03-21"
+    "end": "2026-03-31",
 }
 
-# === SOURCES : SITES COPYCOP FRANCOPHONES ===
-# Liste provisoire. À compléter après identification de l'échantillon
-# (Listes RSF + Recorded Future + rapport Viginum Storm-1516)
 
-COPYCOP_SITES = [
-    {
-        "url" : "https://www.pravda-fr.com",
-        "name" : "Pravda FR",
-        "country_target": "France",
-        "status": "active"
-     },
-    {
-        "url": "https://www.elespiadigital.com",
-        "name" : "El Espia Digital",
-        "country_target": "Spain",
-        "status": "active"
-    },
-    {
-        "url": "https://www.news-front.su",
-        "name" : "News Front",
-        "country_target": "France",
-        "status": "active"
-    },
+# === CONSTANTES MÉTHODOLOGIQUES ===========================================
+# Valeurs autorisées pour les champs catégoriels du schéma. Documentées dans
+# le doc 05 (sections 1.1, 1.5, 1.7). Utilisées pour validation côté Python
+# en complément des CHECK constraints SQLite.
+
+PRODUCER_CATEGORIES = {"A", "B", "C", "D"}
+# A : producteurs russes (African Initiative et dérivés, MOI AI-Freak, GPCI)
+# B : relais institutionnels AES (médias d'État Mali/Burkina/Niger)
+# C : amplificateurs cooptés (Kemi Seba, Nathalie Yamb, etc.)
+# D : producteurs locaux à autonomie variable
+
+COUNTRIES = {"MLI", "BFA", "NER", "SUPRA"}
+# SUPRA : acteurs supra-nationaux (African Initiative, galaxie Prigojine,
+# amplificateurs panafricains non rattachés à un pays AES spécifique).
+
+INFLUENCE_INGERENCE_STATUS = {
+    "influence_legitime",
+    "ingerence_caracterisee",
+    "zone_grise",
+}
+
+SALIENCE_SCALE = {0, 1, 2}
+# 0 absent, 1 marginal, 2 central.
+
+CLASSIFICATION_SOURCES = {"manual", "llm"}
+# "both" n'existe pas comme valeur stockable. La méthode Centaure produit
+# deux lignes distinctes (classified_by='manual' puis 'llm') qu'on couple
+# en lecture via store_li.get_centaure_paired_classifications().
+
+PLATFORMS = {"web", "telegram", "facebook", "tiktok", "x", "youtube"}
+
+COLLECTORS = {
+    "wordpress_api",
+    "html_generic",
+    "telegram_channel",
+    "manual_event",
+}
+
+ENTITY_STATUSES = {"active", "inactive", "paywall", "geoblocked"}
+
+ROLES = {"primary", "d3lta_validation"}
+# primary : entité du corpus principal d'analyse.
+# d3lta_validation : doublon multilingue servant uniquement à valider la
+# reformulation côté D3lta (flag is_duplicate_for_d3lta=1 dans articles).
+
+
+# === MOTS-CLÉS LEXICAUX POUR PRÉ-FILTRAGE ================================
+# Objectif : décider de l'inclusion d'un contenu dans le corpus avant
+# d'engager un appel LLM (coûteux). La classification fine reste à la charge
+# des prompts saillances + DISARM + influence/ingérence.
+#
+# Recherche insensible à la casse, frontières de mots non strictes (les
+# expressions contiennent déjà leurs séparateurs). Les listes sont
+# volontairement incomplètes : elles seront enrichies par Romain au fil des
+# lectures.
+
+# Éléments de langage russes (Audinet, IRSEM n°119, octobre 2024).
+AUDINET_LANGUAGE_MARKERS = [
+    "majorité mondiale",
+    "multipolarité",
+    "multipolaire",
+    "occident collectif",
+    "néocolonialisme monétaire",
+    "pays vampire",
 ]
 
-# === PARAMÈTRES DE DÉTECTION DE COORDINATION ===
+# Figures et concepts panafricanistes pré-2020.
+PANAFRICAN_MARKERS = [
+    "sankara",
+    "nkrumah",
+    "lumumba",
+    "césaire",
+    "mbembe",
+    "diop",
+    "décolonialité",
+    "négritude",
+    "panafricanisme",
+]
 
-COORDINATION_PARAMS = {
-    "time_window_minutes": 30,
-    "min_sites_for_coordination": 3,
-    "similarity_threshold": 0.85,
-    "min_articles_per_site": 5
+# Critique souverainiste contemporaine sans référence russe.
+# "néocolonialisme" est volontairement présent ici ET dans AUDINET (via
+# "néocolonialisme monétaire") : l'overlap est résolu par la détection LLM
+# au moment de la classification, pas dans le pré-filtre.
+SOVEREIGNIST_MARKERS = [
+    "françafrique",
+    "fcfa",
+    "franc cfa",
+    "bases militaires",
+    "néocolonialisme",
+    "survie",
+]
+
+# Marqueurs nationaux AES par pays. Dictionnaire indexé par code ISO.
+NATIONAL_AES_MARKERS = {
+    "MLI": ["goïta", "assimi goïta", "mali kura", "ortm", "l'essor"],
+    "BFA": ["traoré", "ibrahim traoré", "rtb", "sidwaya", "faso mêbo"],
+    "NER": ["tiani", "abdourahamane tiani", "cnsp", "ortn"],
 }
 
-# === PROMPT DISARM POUR CLASSIFICATION ===
-# Matrice complète injectée dans le prompt (pas de confiance
-# dans la mémoire du modèle - pratique standard en production)
+# Règle anti-superposition (doc 05 §1.4) : un contenu traitant
+# substantiellement de la réponse informationnelle française est exclu.
+EXCLUSION_MARKERS_FRENCH_RESPONSE = [
+    "viginum",
+    "sgdsn",
+    "french response",
+    "contre-discours français",
+    "meae",
+    "cfi",
+]
 
-DISARM_PROMPT = """Tu es un analyste spécialisé en lutte informationnelle.
-Ta tâche est de classifier un contenu issu d'une campagne d'influence pro-Kremlin selon le framework DISARM Red Framework.
+
+def passes_inclusion_filter(
+    text: str,
+    country: str | None = None,
+) -> tuple[bool, str]:
+    """Pré-filtre lexical : décide si un contenu mérite une classification LLM.
+
+    Critères d'inclusion (doc 05 §1.7 décision D) — au moins un thème parmi :
+    - dénigrement de la France / valorisation juntes AES / partenariat
+      Russie-Afrique / matrice panafricaniste ou souverainiste anti-française.
+
+    Exclusion stricte : contenu traitant la réponse informationnelle
+    française (règle anti-superposition Henry, doc 05 §1.4). L'exclusion
+    prime sur l'inclusion : si un marqueur d'exclusion est présent, le
+    contenu est rejeté même s'il contient par ailleurs des marqueurs
+    d'inclusion.
+
+    Logique par axe :
+    - russe : AUDINET_LANGUAGE_MARKERS
+    - panafricaniste : PANAFRICAN_MARKERS
+    - souverainiste : SOVEREIGNIST_MARKERS
+    - national AES : NATIONAL_AES_MARKERS[country] si country ∈
+      {MLI, BFA, NER}, union des 3 pays si country=None. Pour country=
+      'SUPRA', l'axe national est ignoré (une entité supra-nationale comme
+      African Initiative peut parfaitement entrer dans le corpus via les
+      trois autres axes sans marqueur AES local).
+
+    Cette logique vaut pour l'INCLUSION uniquement. Au moment de la
+    classification par le prompt saillances, l'axe national AES reste
+    scoré 0/1/2 pour tous les contenus, SUPRA compris.
+
+    Retour : (True, "matched: <type>") si inclus, (False, "reason") sinon.
+    Le premier marqueur trouvé détermine le type retourné (ordre : exclusion
+    d'abord, puis russe, panafrican, sovereignist, national).
+    """
+    text_lower = text.lower()
+
+    for marker in EXCLUSION_MARKERS_FRENCH_RESPONSE:
+        if marker.lower() in text_lower:
+            return (False, f"excluded: french response marker '{marker}'")
+
+    for marker in AUDINET_LANGUAGE_MARKERS:
+        if marker.lower() in text_lower:
+            return (True, f"matched: audinet '{marker}'")
+
+    for marker in PANAFRICAN_MARKERS:
+        if marker.lower() in text_lower:
+            return (True, f"matched: panafrican '{marker}'")
+
+    for marker in SOVEREIGNIST_MARKERS:
+        if marker.lower() in text_lower:
+            return (True, f"matched: sovereignist '{marker}'")
+
+    if country == "SUPRA":
+        # Axe national volontairement ignoré pour l'inclusion des entités
+        # supra-nationales. Si aucun des 3 axes précédents n'a matché,
+        # le contenu est rejeté.
+        return (False, "no inclusion marker (SUPRA, national axis skipped)")
+
+    if country in ("MLI", "BFA", "NER"):
+        for marker in NATIONAL_AES_MARKERS[country]:
+            if marker.lower() in text_lower:
+                return (True, f"matched: national_aes_{country} '{marker}'")
+        return (False, f"no inclusion marker (tested national={country})")
+
+    # country is None : tester l'union des marqueurs nationaux des 3 pays.
+    for code, markers in NATIONAL_AES_MARKERS.items():
+        for marker in markers:
+            if marker.lower() in text_lower:
+                return (True, f"matched: national_aes_{code} '{marker}'")
+
+    return (False, "no inclusion marker found")
+
+
+# === PARAMÈTRES DE DÉTECTION DE COORDINATION ==============================
+# Valeurs prêtes pour l'algorithme de détection (brief 2). Non utilisées
+# dans ce brief — le schéma coordination_events existe mais aucune fonction
+# de détection ne tourne encore.
+
+COORDINATION_PARAMS = {
+    # Coordination stricte entre canaux AI officiels (afrinz.ru + Telegram AI).
+    # Fenêtre serrée car on attend un quasi-sync éditorial.
+    "ai_strict": {
+        "time_window_hours": 2,
+        "similarity_threshold": 0.85,
+        "min_channels": 2,
+    },
+    # Coordination AI → relais locaux avec reformulation tolérée.
+    # Fenêtre large : la reformulation et la traduction prennent du temps.
+    # Seuil bas : l'adaptation dégrade la similarité brute.
+    "ai_to_local_relay": {
+        "time_window_hours": 72,
+        "similarity_threshold": 0.65,
+        "min_channels": 2,
+    },
+    # Coordination inter-pays (même narratif dans MLI + BFA + NER).
+    # Spécificité du sujet Sahel, absente du sujet CopyCop.
+    "cross_country": {
+        "time_window_hours": 48,
+        "similarity_threshold": 0.70,
+        "min_countries": 2,
+    },
+}
+
+# Seuil en dessous duquel une entité est ignorée pour l'analyse de
+# coordination (trop peu d'articles pour que le signal soit fiable).
+COORDINATION_MIN_ARTICLES_PER_ENTITY = 5
+
+
+# === CHARGEMENT DE LA MATRICE DISARM =====================================
+
+# Chemin par défaut de la matrice : sibling de ce fichier.
+_DISARM_MATRIX_PATH = Path(__file__).parent / "disarm_matrix.md"
+
+
+@functools.lru_cache(maxsize=1)
+def load_disarm_matrix(path: str | None = None) -> str:
+    """Lit la matrice DISARM depuis li/disarm_matrix.md.
+
+    Résultat caché (lru_cache) : le fichier est lu une seule fois par
+    processus Python, évite les IO répétées quand build_disarm_prompt()
+    est appelée pour chaque classification du corpus.
+
+    Si Romain modifie le fichier pendant une session interactive, il doit
+    appeler load_disarm_matrix.cache_clear() pour forcer un rechargement.
+    """
+    p = Path(path) if path else _DISARM_MATRIX_PATH
+    return p.read_text(encoding="utf-8")
+
+
+# === CHARGEMENT DES ENTITÉS DU CORPUS ====================================
+
+# Colonnes obligatoires de data/entities.csv. Validation stricte : toute
+# absence lève une exception explicite.
+ENTITY_REQUIRED_COLUMNS = [
+    "entity_id",
+    "name",
+    "url",
+    "platform",
+    "producer_category",
+    "country",
+    "collector",
+    "html_title_selector",
+    "html_date_selector",
+    "html_content_selector",
+    "rate_limit_seconds",
+    "status",
+    "default_language",
+    "role",
+    "notes",
+]
+
+
+def load_entities(path: str = "data/entities.csv") -> list[dict]:
+    """Lit data/entities.csv et retourne la liste des entités actives.
+
+    Convention de lecture :
+    - Le fichier peut commencer par un bloc de commentaires '#' décrivant
+      la convention (ex. définition des colonnes). Ce bloc est skippé
+      silencieusement jusqu'à la première ligne non-vide et non-# qui
+      sert de header CSV.
+    - Après le header, toute ligne dont la première cellule commence par
+      '#' est traitée comme exemple commenté, non parsé. Chaque skip est
+      loggué sur stdout : 'skipping commented example row: <slug>'.
+    - Les colonnes de ENTITY_REQUIRED_COLUMNS doivent toutes être
+      présentes. Toute colonne manquante lève ValueError.
+    - Les valeurs producer_category / country / platform / collector /
+      status / role sont validées contre leurs sets respectifs.
+    - rate_limit_seconds est converti en float, défaut 2.0 si vide.
+    """
+    entities: list[dict] = []
+
+    # Le bloc de documentation en tête (#...) doit être filtré avant que
+    # csv.DictReader ne parse le header, sinon la 1ʳᵉ ligne # est prise
+    # pour fieldnames.
+    with open(path, newline="", encoding="utf-8") as f:
+        raw_lines = f.readlines()
+
+    csv_lines: list[str] = []
+    header_found = False
+    for line in raw_lines:
+        stripped = line.lstrip()
+        if not header_found:
+            if stripped == "" or stripped.startswith("#"):
+                continue
+            header_found = True
+            csv_lines.append(line)
+        else:
+            csv_lines.append(line)
+
+    if not header_found:
+        raise ValueError(f"entities.csv ({path}) : aucun header CSV trouvé")
+
+    reader = csv.DictReader(csv_lines)
+
+    missing = [c for c in ENTITY_REQUIRED_COLUMNS if c not in reader.fieldnames]
+    if missing:
+        raise ValueError(
+            f"entities.csv manque les colonnes : {missing}. "
+            f"Colonnes attendues : {ENTITY_REQUIRED_COLUMNS}"
+        )
+
+    for row_idx, row in enumerate(reader, start=2):
+        first_cell = (row.get("entity_id") or "").strip()
+        if first_cell.startswith("#"):
+            # Slug réel sans le '#' de tête pour un log lisible.
+            slug = first_cell.lstrip("#").strip() or "(anonyme)"
+            print(f"skipping commented example row: {slug}")
+            continue
+
+        if not first_cell:
+            # Ligne vide (sans # mais sans entity_id) — ignorer
+            # silencieusement, c'est probablement une ligne blanche
+            # de mise en forme.
+            continue
+
+        if row["producer_category"] not in PRODUCER_CATEGORIES:
+            raise ValueError(
+                f"entities.csv ligne {row_idx} ({first_cell}) : "
+                f"producer_category='{row['producer_category']}' invalide, "
+                f"attendu dans {sorted(PRODUCER_CATEGORIES)}"
+            )
+        if row["country"] not in COUNTRIES:
+            raise ValueError(
+                f"entities.csv ligne {row_idx} ({first_cell}) : "
+                f"country='{row['country']}' invalide, "
+                f"attendu dans {sorted(COUNTRIES)}"
+            )
+        if row["platform"] not in PLATFORMS:
+            raise ValueError(
+                f"entities.csv ligne {row_idx} ({first_cell}) : "
+                f"platform='{row['platform']}' invalide, "
+                f"attendu dans {sorted(PLATFORMS)}"
+            )
+        if row["collector"] not in COLLECTORS:
+            raise ValueError(
+                f"entities.csv ligne {row_idx} ({first_cell}) : "
+                f"collector='{row['collector']}' invalide, "
+                f"attendu dans {sorted(COLLECTORS)}"
+            )
+        if row["status"] not in ENTITY_STATUSES:
+            raise ValueError(
+                f"entities.csv ligne {row_idx} ({first_cell}) : "
+                f"status='{row['status']}' invalide, "
+                f"attendu dans {sorted(ENTITY_STATUSES)}"
+            )
+        if row["role"] not in ROLES:
+            raise ValueError(
+                f"entities.csv ligne {row_idx} ({first_cell}) : "
+                f"role='{row['role']}' invalide, "
+                f"attendu dans {sorted(ROLES)}"
+            )
+
+        rls_raw = (row.get("rate_limit_seconds") or "").strip()
+        row["rate_limit_seconds"] = float(rls_raw) if rls_raw else 2.0
+
+        entities.append(row)
+
+    return entities
+
+
+# === PROMPTS LLM ==========================================================
+# Trois prompts distincts, appelés séparément pour chaque article.
+# Justification (méthodologique) : découper les tâches cognitives réduit la
+# dérive du modèle et améliore la parsabilité de la sortie.
+# Justification (coût) : chaque prompt est long ; le prompt caching
+# Anthropic (cache_control: ephemeral) rend la répétition négligeable —
+# voir core/analyze.py::call_claude(cache_system=True).
+
+CONTEXT_PROMPT = """Tu es un analyste spécialisé en lutte informationnelle.
 
 CONTEXTE OPÉRATIONNEL :
-Tu analyses des contenus collectés sur des sites francophones liés à l'opération Storm-1516 (réseau CopyCop), ciblant la France pendant la période électorale de février-mars 2026. Ces sites imitent des médias légitimes et diffusent des narratifs pro-Kremlin traduits automatiquement depuis des sources russes.
+Tu analyses des contenus collectés dans le cadre d'une étude sur l'écosystème informationnel pro-AES / anti-français ciblant le Mali, le Burkina Faso et le Niger en 2025-2026. Le flux étudié est un flux informationnel unique (pro-AES/anti-français) analysé à travers trois terrains nationaux.
 
-MATRICE DISARM RED FRAMEWORK (référence complète) :
-Utilise EXCLUSIVEMENT les codes et noms ci-dessous pour tes classifications.
-Ne te fie pas à ta mémoire du framework, utilise cette référence.
+Les producteurs de ce flux relèvent de quatre catégories :
+- A — Producteurs russes : African Initiative et dérivés, MOI AI-Freak documenté par Viginum, galaxie Prigojine résiduelle, GPCI.
+- B — Relais institutionnels AES : médias d'État restructurés (L'Essor, ORTM, RTB, Sidwaya, Le Sahel, ORTN et équivalents).
+- C — Amplificateurs cooptés : Kemi Seba, Nathalie Yamb et autres influenceurs panafricanistes cooptés.
+- D — Producteurs locaux à autonomie variable : comptes locaux TikTok/Facebook, médias privés non alignés sur AI.
 
-PLAN :
+RÈGLE DE CADRAGE (non négociable) :
+Ce rapport n'analyse pas la réponse informationnelle française. Si un contenu traite substantiellement de la riposte française (Viginum, SGDSN, MEAE, CFI, AFD, dispositifs militaires ou de renseignement), tu le signales comme "HORS_SCOPE" et tu n'effectues pas de classification DISARM.
 
-- TA01: Plan Strategy
-  T0073: Determine Target Audiences
-  T0074: Determine Strategic Ends
+PRINCIPE ANALYTIQUE IMPORTANT :
+Un contenu qui mobilise uniquement la matrice panafricaniste ou souverainiste africaine sans aucun marqueur russe est un cas analytiquement valide (saillances 0-2-0-0 ou 0-0-2-0). Il doit être classifié normalement. Ne pas forcer une attribution russe par défaut.
+"""
 
-- TA02: Plan Objectives
-  T0002: Facilitate State Propaganda
-  T0066: Degrade Adversary
-  T0075: Dismiss
-  T0075.001: Discredit Credible Sources
-  T0076: Distort
-  T0077: Distract
-  T0078: Dismay
-  T0079: Divide
 
-- TA13: Target Audience Analysis
-  T0072: Segment Audiences
-  T0072.001: Geographic Segmentation
-  T0072.002: Demographic Segmentation
-  T0072.003: Economic Segmentation
-  T0072.004: Psychographic Segmentation
-  T0072.005: Political Segmentation
-  T0080: Map Target Audience Information Environment
-  T0080.001: Monitor Social Media Analytics
-  T0080.002: Evaluate Media Surveys
-  T0080.003: Identify Trending Topics/Hashtags
-  T0080.004: Conduct Web Traffic Analysis
-  T0080.005: Assess Degree/Type of Media Access
-  T0081: Identify Social and Technical Vulnerabilities
-  T0081.001: Find Echo Chambers
-  T0081.002: Identify Data Voids
-  T0081.003: Identify Existing Prejudices
-  T0081.004: Identify Existing Fissures
-  T0081.005: Identify Existing Conspiracy Narratives/Suspicions
-  T0081.006: Identify Wedge Issues
-  T0081.007: Identify Target Audience Adversaries
-  T0081.008: Identify Media System Vulnerabilities
+DISARM_INSTRUCTIONS = """MATRICE DISARM (référence complète ci-dessus). Utilise EXCLUSIVEMENT les codes et noms de cette référence. Ne te fie pas à ta mémoire du framework.
 
-PREPARE :
-
-- TA14: Develop Narratives
-  T0003: Leverage Existing Narratives
-  T0004: Develop Competing Narratives
-  T0022: Leverage Conspiracy Theory Narratives
-  T0022.001: Amplify Existing Conspiracy Theory Narratives
-  T0022.002: Develop Original Conspiracy Theory Narratives
-  T0040: Demand Insurmountable Proof
-  T0068: Respond to Breaking News Event or Active Crisis
-  T0082: Develop New Narratives
-  T0083: Integrate Target Audience Vulnerabilities into Narrative
-
-- TA06: Develop Content
-  T0015: Create Hashtags and Search Artifacts
-  T0019: Generate Information Pollution
-  T0019.001: Create Fake Research
-  T0019.002: Hijack Hashtags
-  T0023: Distort Facts
-  T0023.001: Reframe Context
-  T0023.002: Edit Open-Source Content
-  T0084: Reuse Existing Content
-  T0084.001: Use Copypasta
-  T0084.002: Plagiarize Content
-  T0084.003: Deceptively Labeled or Translated
-  T0084.004: Appropriate Content
-  T0085: Develop Text-based Content
-  T0085.001: Develop AI-Generated Text
-  T0085.002: Develop False or Altered Documents
-  T0085.003: Develop Inauthentic News Articles
-  T0086: Develop Image-based Content
-  T0086.001: Develop Memes
-  T0086.002: Develop AI-Generated Images (Deepfakes)
-  T0086.003: Deceptively Edit Images (Cheap Fakes)
-  T0086.004: Aggregate Information into Evidence Collages
-  T0087: Develop Video-based Content
-  T0087.001: Develop AI-Generated Videos (Deepfakes)
-  T0087.002: Deceptively Edit Video (Cheap Fakes)
-  T0088: Develop Audio-based Content
-  T0088.001: Develop AI-Generated Audio (Deepfakes)
-  T0088.002: Deceptively Edit Audio (Cheap Fakes)
-  T0089: Obtain Private Documents
-  T0089.001: Obtain Authentic Documents
-  T0089.002: Create Inauthentic Documents
-  T0089.003: Alter Authentic Documents
-
-- TA15: Establish Social Assets
-  T0007: Create Inauthentic Social Media Pages and Groups
-  T0010: Cultivate Ignorant Agents
-  T0013: Create Inauthentic Websites
-  T0014: Prepare Fundraising Campaigns
-  T0014.001: Raise Funds from Malign Actors
-  T0014.002: Raise Funds from Ignorant Agents
-  T0065: Prepare Physical Broadcast Capabilities
-  T0090: Create Inauthentic Accounts
-  T0090.001: Create Anonymous Accounts
-  T0090.002: Create Cyborg Accounts
-  T0090.003: Create Bot Accounts
-  T0090.004: Create Sockpuppet Accounts
-  T0091: Recruit Malign Actors
-  T0091.001: Recruit Contractors
-  T0091.002: Recruit Partisans
-  T0091.003: Enlist Troll Accounts
-  T0092: Build Network
-  T0092.001: Create Organizations
-  T0092.002: Use Follow Trains
-  T0092.003: Create Community or Sub-group
-  T0093: Acquire/Recruit Network
-  T0093.001: Fund Proxies
-  T0093.002: Acquire Botnets
-  T0094: Infiltrate Existing Networks
-  T0094.001: Identify Susceptible Targets in Networks
-  T0094.002: Utilize Butterfly Attacks
-  T0095: Develop Owned Media Assets
-  T0096: Leverage Content Farms
-  T0096.001: Create Content Farms
-  T0096.002: Outsource Content Creation to External Organizations
-
-- TA16: Establish Legitimacy
-  T0009: Create Fake Experts
-  T0009.001: Utilize Academic/Pseudoscientific Justifications
-  T0011: Compromise Legitimate Websites
-  T0097: Create Personas
-  T0097.001: Backstop Personas
-  T0098: Establish Inauthentic News Sites
-  T0098.001: Create Inauthentic News Sites
-  T0098.002: Leverage Existing Inauthentic News Sites
-  T0099: Prepare Assets Impersonating Legitimate Entities
-  T0099.001: Astroturfing
-  T0099.002: Spoof/Parody Account/Site
-  T0100: Co-opt Trusted Sources
-  T0100.001: Co-Opt Trusted Individuals
-  T0100.002: Co-Opt Grassroots Groups
-  T0100.003: Co-opt Influencers
-
-- TA05: Microtarget
-  T0016: Create Clickbait
-  T0018: Purchase Targeted Advertisements
-  T0101: Create Localized Content
-  T0102: Leverage Echo Chambers/Filter Bubbles
-  T0102.001: Use Existing Echo Chambers/Filter Bubbles
-  T0102.002: Create Echo Chambers/Filter Bubbles
-  T0102.003: Exploit Data Voids
-  T0103: Livestream
-  T0103.001: Video Livestream
-  T0103.002: Audio Livestream
-
-- TA07: Select Channels and Affordances
-  T0029: Online Polls
-  T0043: Chat Apps
-  T0043.001: Use Encrypted Chat Apps
-  T0043.002: Use Unencrypted Chat Apps
-  T0104: Social Networks
-  T0104.001: Mainstream Social Networks
-  T0104.002: Dating Apps
-  T0104.003: Private/Closed Social Networks
-  T0104.004: Interest-Based Networks
-  T0104.005: Use Hashtags
-  T0104.006: Create Dedicated Hashtag
-  T0105: Media Sharing Networks
-  T0105.001: Photo Sharing
-  T0105.002: Video Sharing
-  T0105.003: Audio Sharing
-  T0106: Discussion Forums
-  T0106.001: Anonymous Message Boards
-  T0107: Bookmarking and Content Curation
-  T0108: Blogging and Publishing Networks
-  T0109: Consumer Review Networks
-  T0110: Formal Diplomatic Channels
-  T0111: Traditional Media
-  T0111.001: TV
-  T0111.002: Newspaper
-  T0111.003: Radio
-  T0112: Email
-
-EXECUTE :
-
-- TA08: Conduct Pump Priming
-  T0020: Trial Content
-  T0039: Bait Legitimate Influencers
-  T0042: Seed Kernel of Truth
-  T0044: Seed Distortions
-  T0045: Use Fake Experts
-  T0046: Use Search Engine Optimization
-  T0113: Employ Commercial Analytic Firms
-
-- TA09: Deliver Content
-  T0114: Deliver Ads
-  T0114.001: Social Media
-  T0114.002: Traditional Media
-  T0115: Post Content
-  T0115.001: Share Memes
-  T0115.002: Post Violative Content to Provoke Takedown and Backlash
-  T0115.003: One-Way Direct Posting
-  T0116: Comment or Reply on Content
-  T0116.001: Post Inauthentic Social Media Comment
-  T0117: Attract Traditional Media
-
-- TA17: Maximize Exposure
-  T0049: Flooding the Information Space
-  T0049.001: Trolls Amplify and Manipulate
-  T0049.002: Hijack Existing Hashtag
-  T0049.003: Bots Amplify via Automated Forwarding and Reposting
-  T0049.004: Utilize Spamoflauge
-  T0049.005: Conduct Swarming
-  T0049.006: Conduct Keyword Squatting
-  T0049.007: Inauthentic Sites Amplify News and Narratives
-  T0118: Amplify Existing Narrative
-  T0119: Cross-Posting
-  T0119.001: Post Across Groups
-  T0119.002: Post Across Platform
-  T0119.003: Post Across Disciplines
-  T0120: Incentivize Sharing
-  T0120.001: Use Affiliate Marketing Programs
-  T0120.002: Use Contests and Prizes
-  T0121: Manipulate Platform Algorithm
-  T0121.001: Bypass Content Blocking
-  T0122: Direct Users to Alternative Platforms
-
-- TA18: Drive Online Harms
-  T0047: Censor Social Media as a Political Force
-  T0048: Harass
-  T0048.001: Boycott/"Cancel" Opponents
-  T0048.002: Harass People Based on Identities
-  T0048.003: Threaten to Dox
-  T0048.004: Dox
-  T0123: Control Information Environment through Offensive Cyberspace Operations
-  T0123.001: Delete Opposing Content
-  T0123.002: Block Content
-  T0123.003: Destroy Information Generation Capabilities
-  T0123.004: Conduct Server Redirect
-  T0124: Suppress Opposition
-  T0124.001: Report Non-Violative Opposing Content
-  T0124.002: Goad People into Harmful Action (Stop Hitting Yourself)
-  T0124.003: Exploit Platform TOS/Content Moderation
-  T0125: Platform Filtering
-
-- TA10: Drive Offline Activity
-  T0017: Conduct Fundraising
-  T0017.001: Conduct Crowdfunding Campaigns
-  T0057: Organize Events
-  T0057.001: Pay for Physical Action
-  T0057.002: Conduct Symbolic Action
-  T0061: Sell Merchandise
-  T0126: Encourage Attendance at Events
-  T0126.001: Call to Action to Attend
-  T0126.002: Facilitate Logistics or Support for Attendance
-  T0127: Physical Violence
-  T0127.001: Conduct Physical Violence
-  T0127.002: Encourage Physical Violence
-
-- TA11: Persist in the Information Environment
-  T0059: Play the Long Game
-  T0060: Continue to Amplify
-  T0128: Conceal People
-  T0128.001: Use Pseudonyms
-  T0128.002: Conceal Network Identity
-  T0128.003: Distance Reputable Individuals from Operation
-  T0128.004: Launder Accounts
-  T0128.005: Change Names of Accounts
-  T0129: Conceal Operational Activity
-  T0129.001: Conceal Network Identity
-  T0129.002: Generate Content Unrelated to Narrative
-  T0129.003: Break Association with Content
-  T0129.004: Delete URLs
-  T0129.005: Coordinate on Encrypted/Closed Networks
-  T0129.006: Deny Involvement
-  T0129.007: Delete Accounts/Account Activity
-  T0129.008: Redirect URLs
-  T0129.009: Remove Post Origins
-  T0129.010: Misattribute Activity
-  T0130: Conceal Infrastructure
-  T0130.001: Conceal Sponsorship
-  T0130.002: Utilize Bulletproof Hosting
-  T0130.003: Use Shell Organizations
-  T0130.004: Use Cryptocurrency
-  T0130.005: Obfuscate Payment
-  T0131: Exploit TOS/Content Moderation
-  T0131.001: Legacy Web Content
-  T0131.002: Post Borderline Content
-
-ASSESS :
-
-- TA12: Assess Effectiveness
-  T0132: Measure Performance
-  T0132.001: People Focused
-  T0132.002: Content Focused
-  T0132.003: View Focused
-  T0133: Measure Effectiveness
-  T0133.001: Behavior Changes
-  T0133.002: Content
-  T0133.003: Awareness
-  T0133.004: Knowledge
-  T0133.005: Action/Attitude
-  T0134: Measure Effectiveness Indicators (or KPIs)
-  T0134.001: Message Reach
-  T0134.002: Social Media Engagement
-
+TÂCHE :
 Pour chaque contenu soumis, tu dois :
-1. Identifier la tactique DISARM la plus pertinente (code TAxx + nom)
-2. Identifier la ou les techniques DISARM les plus pertinentes (code Txxxx + nom)
-3. Fournir une justification en une phrase
-4. Indiquer un niveau de confiance : HIGH, MEDIUM ou LOW
+1. Vérifier l'éligibilité : si le contenu traite substantiellement de la réponse française, répondre uniquement "HORS_SCOPE: raison en une phrase" et t'arrêter.
+2. Identifier la tactique DISARM la plus pertinente (code TAxx + nom).
+3. Identifier la ou les techniques DISARM les plus pertinentes (code Txxxx + nom).
+4. Fournir une justification en une phrase.
+5. Indiquer un niveau de confiance : HIGH, MEDIUM ou LOW.
 
-Si le contenu décrit n'est pas une technique d'influence mais un marqueur technique involontaire (erreur d'OPSEC, artefact technique), indique "PAS UNE TECHNIQUE DISARM" et explique pourquoi en une phrase.
+Si le contenu décrit un marqueur technique involontaire (erreur d'OPSEC, artefact technique) plutôt qu'une technique d'influence, réponds "PAS UNE TECHNIQUE DISARM" avec une phrase d'explication.
 
-Réponds uniquement au format suivant :
+FORMAT DE RÉPONSE STRICT :
 TACTIQUE: TAxx - Nom
 TECHNIQUE(S): Txxxx - Nom / Txxxx.xxx - Nom
 JUSTIFICATION: [une phrase]
 CONFIANCE: HIGH/MEDIUM/LOW
+"""
+
+
+def build_disarm_prompt() -> str:
+    """Construit le prompt DISARM : contexte + matrice + consignes.
+
+    Concaténation dynamique pour bénéficier du prompt caching Anthropic :
+    le bloc (CONTEXT_PROMPT + matrice) est stable entre tous les appels
+    DISARM et sera marqué cache_control=ephemeral côté core/analyze.py.
+    """
+    return CONTEXT_PROMPT + "\n\n" + load_disarm_matrix() + "\n\n" + DISARM_INSTRUCTIONS
+
+
+SALIENCE_PROMPT = CONTEXT_PROMPT + """
+
+TÂCHE : scorer le contenu soumis sur quatre indicateurs de saillance, chacun sur une échelle 0/1/2.
+
+ÉCHELLE :
+- 0 : absent
+- 1 : présent mais marginal ou accessoire
+- 2 : présent et central dans le contenu
+
+INDICATEURS :
+
+1. SAILLANCE RUSSE : présence d'éléments de langage Audinet ("majorité mondiale", "multipolarité", "Occident collectif", "néocolonialisme monétaire", "pays vampire") et des sous-récits russes (partenariat Russie-Afrique présenté comme modèle, condamnation de l'Occident, multipolarité anti-occidentale).
+
+2. SAILLANCE PANAFRICANISTE INTELLECTUELLE : mobilisation de figures ou concepts pré-2020 (Diop, Nkrumah, Sankara, Césaire, Lumumba, Mbembe ; décolonialité, négritude, panafricanisme historique).
+
+3. SAILLANCE SOUVERAINISTE AFRICAINE CONTEMPORAINE : critique FCFA, bases militaires, Françafrique SANS référence russe. Références à Survie, Felwine Sarr, ONG africaines.
+
+4. SAILLANCE NATIONALE AES : références spécifiques au pays (figures Traoré/Goïta/Tiani, symboles locaux, formulations officielles du pouvoir en place).
+
+PRINCIPE : un contenu qui mobilise uniquement la matrice panafricaniste (saillance 2-0-0-0 sur l'axe panafricain) ou souverainiste (saillance 0-0-2-0) est un résultat analytiquement valide, pas une erreur.
+
+NE PAS tenter de documenter la signature symbolique (drapeaux, cérémonies, images rituelles). Elle est hors de ta portée (tu ne vois pas les images) et sera documentée manuellement.
+
+FORMAT DE RÉPONSE STRICT :
+SAILLANCE_RUSSE: 0|1|2
+SAILLANCE_PANAFRICANISTE: 0|1|2
+SAILLANCE_SOUVERAINISTE: 0|1|2
+SAILLANCE_NATIONALE_AES: 0|1|2
+JUSTIFICATION: [deux phrases maximum]
+"""
+
+
+INFLUENCE_INGERENCE_PROMPT = CONTEXT_PROMPT + """
+
+TÂCHE : qualifier le contenu au regard de la distinction doctrinale influence légitime / ingérence caractérisée / zone grise (rapport CAPS-IRSEM 2018, Les manipulations de l'information).
+
+DÉFINITIONS :
+- INFLUENCE_LEGITIME : action informationnelle revendiquée d'un acteur dans l'espace public. Exemple : un média d'État AES qui porte ouvertement la position de la junte.
+- INGERENCE_CARACTERISEE : au moins un des quatre critères Viginum est rempli : contenu trompeur, diffusion artificielle, caractère étranger dissimulé, atteinte aux intérêts fondamentaux.
+- ZONE_GRISE : contenu dont le statut est ambigu (ex. contenu souverainiste local possiblement amplifié par une opération russe sans que l'amplification soit établie de façon décisive).
+
+FORMAT DE RÉPONSE STRICT :
+STATUT: influence_legitime | ingerence_caracterisee | zone_grise
+JUSTIFICATION: [deux phrases maximum]
+CONFIANCE: HIGH | MEDIUM | LOW
 """
