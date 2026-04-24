@@ -1,3 +1,17 @@
+"""core/store_cti.py — persistance SQLite du pipeline CTI (enrichissements IoC).
+
+Renommé depuis core/store.py le 24 avril 2026 dans le cadre de la refonte LI
+(sujet Sahel). Schéma strictement CTI — le corpus LI vit dans li/store_li.py
+et data/corpus.db, avec un schéma complètement distinct.
+
+Contrat raw_response : insert_enrichment lit data["raw_response"] et le
+sérialise en JSON. Si l'appelant (core/collect.py) ne fournit pas ce champ,
+on stocke un dict vide JSON — pas d'erreur. L'appelant peut enrichir data
+avec `data["raw_response"] = response.json()` avant l'insert s'il veut
+conserver la réponse brute de l'API externe. À date, core/collect.py ne
+peuple pas raw_response : le comportement actuel est donc de stocker {}.
+"""
+
 import sqlite3
 import json
 from datetime import datetime

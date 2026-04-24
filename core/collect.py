@@ -12,10 +12,29 @@ SHODAN_API_KEY = os.getenv("SHODAN_API_KEY")
 CENSYS_API_KEY = os.getenv("CENSYS_API_TOKEN")
 
 
+# Mapping ioc_type interne → segment de l'API VirusTotal v3.
+# Remplace l'ancien `f"{ioc_type}s"` qui produisait "ips" pour
+# ioc_type="ip_address" (endpoint inexistant : l'API attend "ip_addresses").
+# VT v3 reference : https://docs.virustotal.com/reference/overview
+VT_TYPE_SEGMENTS = {
+    "domain": "domains",
+    "file": "files",
+    "ip_address": "ip_addresses",
+    "url": "urls",
+}
+
+
 def query_virustotal(ioc, ioc_type):
-    url = f"https://www.virustotal.com/api/v3/{ioc_type}s/{ioc}"
+    segment = VT_TYPE_SEGMENTS.get(ioc_type)
+    if segment is None:
+        print(
+            f"Erreur VirusTotal : ioc_type '{ioc_type}' non supporté. "
+            f"Valeurs acceptées : {sorted(VT_TYPE_SEGMENTS)}"
+        )
+        return None
+    url = f"https://www.virustotal.com/api/v3/{segment}/{ioc}"
     headers = {"x-apikey": VT_API_KEY}
-    try: 
+    try:
         response = requests.get(url, headers=headers)
         data = response.json()
         result = {
@@ -24,7 +43,7 @@ def query_virustotal(ioc, ioc_type):
             "malicious": data.get("data", {}).get("attributes", {}).get("last_analysis_stats", {}).get("malicious", 0),
             "suspicious": data.get("data", {}).get("attributes", {}).get("last_analysis_stats", {}).get("suspicious", 0),
             "registrar": data.get("data", {}).get("attributes", {}).get("registrar", None),
-            "permalink": f"https://www.virustotal.com/gui/{ioc_type}s/{ioc}",
+            "permalink": f"https://www.virustotal.com/gui/{segment}/{ioc}",
         }
         time.sleep(1)
         return result
