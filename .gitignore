@@ -215,3 +215,22 @@ data/*.db
 
 # Corpus collectés (OPSEC)
 data/li_corpus/
+
+# Archives binaires du corpus LI (HTML SingleFile, JSON metadata, txt Wayback)
+# Trop volumineux pour Git, traçabilité via SQLite (data/corpus.db)
+data/archives/**/*.html
+data/archives/**/*.wayback.txt
+data/archives/**/*.json
+# Ré-inclure les README documentaires (versionnés)
+!data/archives/README.md
+!data/archives/_template/
+
+# SQLite fichiers temporaires (déjà couvert pour les .db principaux)
+data/*.db-journal
+data/*.db-wal
+data/*.db-shm
+
+# macOS
+.DS_Store
+**/.DS_Store
+

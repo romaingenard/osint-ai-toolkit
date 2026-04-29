@@ -1,0 +1,1 @@
+Exemple de structure pour une entité. Reproduire ce schéma pour chaque entité du corpus, en remplaçant '_template' par le slug de l'entité (ex: afrinz-ru-fr). Convention complète : voir data/archives/README.md
