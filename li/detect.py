@@ -480,6 +480,7 @@ def archive_page_singlefile(
     url: str,
     entity_id: str,
     output_dir: str = "data/archives",
+    browser_executable_path: str = config.SINGLEFILE_BROWSER_PATH,
 ) -> str | None:
     """Sauvegarde locale via le CLI single-file-cli.
 
@@ -498,7 +499,12 @@ def archive_page_singlefile(
 
     try:
         result = subprocess.run(
-            ["single-file", url, str(out_path)],
+            [
+                "single-file",
+                "--browser-executable-path", browser_executable_path,
+                url,
+                str(out_path),
+            ],
             capture_output=True,
             text=True,
             timeout=180,

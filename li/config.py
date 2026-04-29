@@ -32,6 +32,14 @@ OBSERVATION_PERIOD = {
 }
 
 
+# === PARAMÈTRES D'ARCHIVAGE LOCAL =========================================
+# Chemin vers le binaire Chromium utilisé par single-file-cli pour
+# l'archivage local. Valeur par défaut adaptée à macOS ; à surcharger
+# (env de dev Linux/Windows) en éditant cette constante ou en passant
+# `browser_executable_path=` à archive_page_singlefile().
+SINGLEFILE_BROWSER_PATH = "/Applications/Chromium.app/Contents/MacOS/Chromium"
+
+
 # === CONSTANTES MÉTHODOLOGIQUES ===========================================
 # Valeurs autorisées pour les champs catégoriels du schéma. Documentées dans
 # le doc 05 (sections 1.1, 1.5, 1.7). Utilisées pour validation côté Python
