@@ -234,3 +234,9 @@ data/*.db-shm
 .DS_Store
 **/.DS_Store
 
+
+# Liste opérationnelle des entités du corpus (privé)
+# Le format est documenté dans li/store_li.py et li/config.py
+# Un fichier d'exemple est fourni : data/entities.csv.example
+data/entities.csv
+
