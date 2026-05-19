@@ -601,7 +601,7 @@ def collect_entity(
             stats["skipped_dedup"] += 1
             continue
 
-        passed, reason = config.passes_inclusion_filter(text, country=entity["country"])
+        passed, reason = config.passes_inclusion_filter(text, country=entity["country"], title=art.get("title"))
 
         try:
             wb_url, local_path = archive_page(art["url"], entity)
@@ -660,7 +660,7 @@ def collect_manual_event(
         print(f"[EVENT] article déjà en DB (hash match) : {event_url}")
         return None
 
-    passed, reason = config.passes_inclusion_filter(text, country=entity["country"])
+    passed, reason = config.passes_inclusion_filter(text, country=entity["country"], title=art.get("title"))
     wb_url, local_path = archive_page(event_url, entity)
 
     article_data = {

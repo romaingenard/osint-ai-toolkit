@@ -106,6 +106,26 @@ AUDINET_LANGUAGE_MARKERS = [
     "pays vampire",
 ]
 
+# Extension brief 2bis chantier C2 (19/05/2026) — soft power Russie-Afrique
+# post-Prigojine. Pattern identifié sur le pilote afrinz 5-6/05 (taux faux
+# négatifs ~78%, articles parlant de Russie-Afrique sans mobiliser les
+# éléments de langage Audinet historiques).
+AUDINET_LANGUAGE_MARKERS_EXTENSION = [
+    "russie-afrique",
+    "russie afrique",
+    "sommet russie-afrique",
+    "urss",
+    "coopération soviétique",
+    "jeunesse africaine",
+    "bourses russes",
+    "formation en russie",
+    "partenariat éducatif",
+    "rt en français",
+    "sputnik afrique",
+    "tass",
+]
+AUDINET_LANGUAGE_MARKERS = AUDINET_LANGUAGE_MARKERS + AUDINET_LANGUAGE_MARKERS_EXTENSION
+
 # Figures et concepts panafricanistes pré-2020.
 PANAFRICAN_MARKERS = [
     "sankara",
@@ -118,6 +138,37 @@ PANAFRICAN_MARKERS = [
     "négritude",
     "panafricanisme",
 ]
+
+# Extension brief 2bis chantier C2 (19/05/2026) — anti-occidentalisme
+# panafricaniste contemporain (vs panafricanisme historique des figures).
+# Capture les articles mobilisant la grammaire actuelle des réparations,
+# du double standard occidental et de la dédollarisation BRICS.
+PANAFRICAN_MARKERS_EXTENSION = [
+    "réparations",
+    "réparation coloniale",
+    "esclavage",
+    "traite négrière",
+    "hypocrisie occidentale",
+    "double standard",
+    "deux poids deux mesures",
+    "brics",
+    "dédollarisation",
+    "monnaie souveraine",
+    "souveraineté monétaire",
+    "ingérence occidentale",
+    "ordre néocolonial",
+]
+PANAFRICAN_MARKERS = PANAFRICAN_MARKERS + PANAFRICAN_MARKERS_EXTENSION
+
+# Extension brief 2bis chantier C2 — 4e passe (19/05/2026). Variantes
+# orthographiques avec adjectif (russo-africain/e) en complément des nominaux
+# (russie-afrique / russie afrique) déjà couverts. Cas #2 du pilote afrinz
+# (« tournoi de football russo-africain »).
+AUDINET_LANGUAGE_MARKERS_EXTENSION_2 = [
+    "russo-africain",
+    "russo-africaine",
+]
+AUDINET_LANGUAGE_MARKERS = AUDINET_LANGUAGE_MARKERS + AUDINET_LANGUAGE_MARKERS_EXTENSION_2
 
 # Critique souverainiste contemporaine sans référence russe.
 # "néocolonialisme" est volontairement présent ici ET dans AUDINET (via
@@ -132,12 +183,58 @@ SOVEREIGNIST_MARKERS = [
     "survie",
 ]
 
+# Extension brief 2bis chantier C2 — 4e passe (19/05/2026). Marqueurs
+# anti-français contemporains identifiés sur le pilote afrinz : registre
+# « guerre informationnelle » (cas #10) et registre « France soutient les
+# terroristes » (cas #14, axe Nkili 2). Convention R vs SC du prompt v4.2 §6 :
+# le registre lexical SC prime sur l'énonciateur, même quand la voix citée
+# est russe (cas #14 : ambassadeur Meshkov mobilise le registre SC explicite).
+# Volontairement NON inclus :
+#   - "contre la france" sans "guerre" : risque de sur-matching sur articles
+#     sportifs (« joué contre la France ») ou diplomatiques généraux.
+#   - "arrière-cour de la france" : la typographie française du texte source
+#     (« arrière-cour » de la France) empêche un match littéral robuste.
+SOVEREIGNIST_MARKERS_EXTENSION = [
+    "guerre contre la france",
+    "guerre avec la france",
+    "soutient les terroristes",
+    "soutiennent les terroristes",
+    "soutient le terrorisme",
+    "soutiennent le terrorisme",
+    "soutient les groupes terroristes",       # cas #14 (formulation réelle)
+    "soutiennent les groupes terroristes",    # cas #14 (formulation réelle)
+]
+SOVEREIGNIST_MARKERS = SOVEREIGNIST_MARKERS + SOVEREIGNIST_MARKERS_EXTENSION
+
 # Marqueurs nationaux AES par pays. Dictionnaire indexé par code ISO.
 NATIONAL_AES_MARKERS = {
     "MLI": ["goïta", "assimi goïta", "mali kura", "ortm", "l'essor"],
     "BFA": ["traoré", "ibrahim traoré", "rtb", "sidwaya", "faso mêbo"],
     "NER": ["tiani", "abdourahamane tiani", "cnsp", "ortn"],
 }
+
+# Valorisation des forces armées AES — brief 2bis chantier C2 (19/05/2026).
+# Pattern 1 identifié sur le pilote afrinz. Marqueurs transverses (acronymes
+# et terminologie de la communication militaire AES), à tester en union des
+# 3 pays pour country=None et par pays pour country in {MLI, BFA, NER}.
+# Note : le brief listait "fama" deux fois avec commentaires distincts ;
+# dédupliqué (redondance fonctionnelle après .lower()). À reconsidérer si
+# une variante typographique distincte non couverte par .lower() apparaît.
+AES_MILITARY_MARKERS = [
+    "fama",                       # Forces Armées Maliennes
+    "vdp",                        # Volontaires pour la Défense de la Patrie (BFA)
+    "forces-niger",
+    "forces nigériennes",
+    "antiterroriste",
+    "anti-terroriste",
+    "lutte contre le terrorisme",
+    "opérations militaires",
+    "succès militaire",
+    "victoire des fama",
+    "victoire des vdp",
+    "neutralisé",                 # terme fréquent dans la communication AES
+    "neutralisation",
+]
 
 # Règle anti-superposition (doc 05 §1.4) : un contenu traitant
 # substantiellement de la réponse informationnelle française est exclu.
@@ -154,6 +251,7 @@ EXCLUSION_MARKERS_FRENCH_RESPONSE = [
 def passes_inclusion_filter(
     text: str,
     country: str | None = None,
+    title: str | None = None,
 ) -> tuple[bool, str]:
     """Pré-filtre lexical : décide si un contenu mérite une classification LLM.
 
@@ -181,11 +279,16 @@ def passes_inclusion_filter(
     classification par le prompt saillances, l'axe national AES reste
     scoré 0/1/2 pour tous les contenus, SUPRA compris.
 
+    Si `title` est fourni, il est concaténé au texte avant le matching
+    (un marqueur d'inclusion présent uniquement dans le titre suffit à
+    inclure l'article). Backward-compatible : title=None par défaut, les
+    call sites historiques continuent de ne tester que le body.
+
     Retour : (True, "matched: <type>") si inclus, (False, "reason") sinon.
     Le premier marqueur trouvé détermine le type retourné (ordre : exclusion
-    d'abord, puis russe, panafrican, sovereignist, national).
+    d'abord, puis russe, panafrican, sovereignist, national, military_aes).
     """
-    text_lower = text.lower()
+    text_lower = ((title + "\n") if title else "").lower() + text.lower()
 
     for marker in EXCLUSION_MARKERS_FRENCH_RESPONSE:
         if marker.lower() in text_lower:
@@ -213,13 +316,21 @@ def passes_inclusion_filter(
         for marker in NATIONAL_AES_MARKERS[country]:
             if marker.lower() in text_lower:
                 return (True, f"matched: national_aes_{country} '{marker}'")
+        for marker in AES_MILITARY_MARKERS:
+            if marker.lower() in text_lower:
+                return (True, f"matched: military_aes_{country} '{marker}'")
         return (False, f"no inclusion marker (tested national={country})")
 
-    # country is None : tester l'union des marqueurs nationaux des 3 pays.
+    # country is None : tester l'union des marqueurs nationaux des 3 pays,
+    # puis les marqueurs militaires AES transverses (extension brief 2bis C2).
     for code, markers in NATIONAL_AES_MARKERS.items():
         for marker in markers:
             if marker.lower() in text_lower:
                 return (True, f"matched: national_aes_{code} '{marker}'")
+
+    for marker in AES_MILITARY_MARKERS:
+        if marker.lower() in text_lower:
+            return (True, f"matched: military_aes '{marker}'")
 
     return (False, "no inclusion marker found")
 
