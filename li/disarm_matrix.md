@@ -1,321 +1,65 @@
-# Matrice DISARM Red Framework — référence opérationnelle
+# MATRICE DISARM RED FRAMEWORK V1.6 — INVENTAIRE EXHAUSTIF
 
-Matrice utilisée pour la classification des contenus du corpus "Narratifs anti-français au Sahel 2025-2026".
-Source : extraction de `li/config.py` (variable `DISARM_PROMPT` de l'ancien workflow Storm-1516), vérifiée contre disarm.foundation le 15 avril 2026.
-Format : Markdown, phases en `##`, tactiques en `###`, techniques en liste à puces.
 
-Chargée par `li/config.py::load_disarm_matrix()` (décoré `@functools.lru_cache`) et injectée dans le prompt DISARM.
-Consigne au LLM : utiliser EXCLUSIVEMENT les codes et noms ci-dessous (pas de fallback sur la mémoire du modèle).
+Source taxonomique : `06_DISARM_DEFINITIONS.md` (V1.6, dépôt officiel DISARMFoundation/DISARMframeworks, téléchargée le 11/05/2026). Inventaire intégral des 16 tactiques et de leurs techniques. Pour toute technique citée dans une classification, ne mobiliser que les codes V1.6 listés ci-dessous.
 
-## PLAN
+PLAN (P01) :
 
-### TA01: Plan Strategy
+**TA01 — Plan Strategy** :
+T0073 Determine Target Audiences ; T0074 Determine Strategic Ends ; T0074.001 Geopolitical Advantage ; T0074.002 Domestic Political Advantage ; T0074.003 Economic Advantage ; T0074.004 Ideological Advantage.
 
-- T0073: Determine Target Audiences
-- T0074: Determine Strategic Ends
+**TA02 — Plan Objectives** :
+T0002 Facilitate State Propaganda ; T0066 Degrade Adversary ; T0075 Dismiss ; T0075.001 Discredit Credible Sources ; T0076 Distort ; T0077 Distract ; T0078 Dismay ; T0079 Divide ; T0135 Undermine ; T0135.001 Smear ; T0135.002 Thwart ; T0135.003 Subvert ; T0135.004 Polarise ; T0136 Cultivate Support ; T0136.001 Defend Reputation ; T0136.002 Justify Action ; T0136.003 Energise Supporters ; T0136.004 Boost Reputation ; T0136.005 Cultivate Support for Initiative ; T0136.006 Cultivate Support for Ally ; T0136.007 Recruit Members ; T0136.008 Increase Prestige ; T0137 Make Money ; T0137.001 Generate Ad Revenue ; T0137.002 Scam ; T0137.003 Raise Funds ; T0137.004 Sell Items under False Pretences ; T0137.005 Extort ; T0137.006 Manipulate Stocks ; T0138 Motivate to Act ; T0138.001 Encourage ; T0138.002 Provoke ; T0138.003 Compel ; T0139 Dissuade from Acting ; T0139.001 Discourage ; T0139.002 Silence ; T0139.003 Deter ; T0140 Cause Harm ; T0140.001 Defame ; T0140.002 Intimidate ; T0140.003 Spread Hate.
 
-### TA02: Plan Objectives
+PREPARE (P02) :
 
-- T0002: Facilitate State Propaganda
-- T0066: Degrade Adversary
-- T0075: Dismiss
-- T0075.001: Discredit Credible Sources
-- T0076: Distort
-- T0077: Distract
-- T0078: Dismay
-- T0079: Divide
+**TA13 — Target Audience Analysis** :
+T0072 Segment Audiences ; T0072.001 Geographic Segmentation ; T0072.002 Demographic Segmentation ; T0072.003 Economic Segmentation ; T0072.004 Psychographic Segmentation ; T0072.005 Political Segmentation ; T0080 Map Target Audience Information Environment ; T0080.001 Monitor Social Media Analytics ; T0080.002 Evaluate Media Surveys ; T0080.003 Identify Trending Topics/Hashtags ; T0080.004 Conduct Web Traffic Analysis ; T0080.005 Assess Degree/Type of Media Access ; T0081 Identify Social and Technical Vulnerabilities ; T0081.001 Find Echo Chambers ; T0081.002 Identify Data Voids ; T0081.003 Identify Existing Prejudices ; T0081.004 Identify Existing Fissures ; T0081.005 Identify Existing Conspiracy Narratives/Suspicions ; T0081.006 Identify Wedge Issues ; T0081.007 Identify Target Audience Adversaries ; T0081.008 Identify Media System Vulnerabilities.
 
-### TA13: Target Audience Analysis
+**TA14 — Develop Narratives** :
+T0003 Leverage Existing Narratives ; T0004 Develop Competing Narratives ; T0022 Leverage Conspiracy Theory Narratives ; T0022.001 Amplify Existing Conspiracy Theory Narratives ; T0022.002 Develop Original Conspiracy Theory Narratives ; T0040 Demand Insurmountable Proof ; T0068 Respond to Breaking News Event or Active Crisis ; T0082 Develop New Narratives ; T0083 Integrate Target Audience Vulnerabilities into Narrative.
 
-- T0072: Segment Audiences
-- T0072.001: Geographic Segmentation
-- T0072.002: Demographic Segmentation
-- T0072.003: Economic Segmentation
-- T0072.004: Psychographic Segmentation
-- T0072.005: Political Segmentation
-- T0080: Map Target Audience Information Environment
-- T0080.001: Monitor Social Media Analytics
-- T0080.002: Evaluate Media Surveys
-- T0080.003: Identify Trending Topics/Hashtags
-- T0080.004: Conduct Web Traffic Analysis
-- T0080.005: Assess Degree/Type of Media Access
-- T0081: Identify Social and Technical Vulnerabilities
-- T0081.001: Find Echo Chambers
-- T0081.002: Identify Data Voids
-- T0081.003: Identify Existing Prejudices
-- T0081.004: Identify Existing Fissures
-- T0081.005: Identify Existing Conspiracy Narratives/Suspicions
-- T0081.006: Identify Wedge Issues
-- T0081.007: Identify Target Audience Adversaries
-- T0081.008: Identify Media System Vulnerabilities
+**TA06 — Develop Content** :
+T0015 Create Hashtags and Search Artefacts ; T0015.001 Use Existing Hashtag ; T0015.002 Create New Hashtag ; T0023 Distort Facts ; T0023.001 Reframe Context ; T0023.002 Edit Open-Source Content ; T0084 Reuse Existing Content ; T0084.001 Use Copypasta ; T0084.002 Plagiarise Content ; T0084.003 Deceptively Labelled or Translated ; T0084.004 Appropriate Content ; T0085 Develop Text-Based Content ; T0085.001 Develop AI-Generated Text ; T0085.003 Develop Inauthentic News Articles ; T0085.004 Develop Document ; T0085.005 Develop Book ; T0085.006 Develop Opinion Article ; T0085.007 Create Fake Research ; T0085.008 Machine Translated Text ; T0086 Develop Image-Based Content ; T0086.001 Develop Memes ; T0086.002 Develop AI-Generated Images (Deepfakes) ; T0086.003 Deceptively Edit Images (Cheap Fakes) ; T0086.004 Aggregate Information into Evidence Collages ; T0087 Develop Video-Based Content ; T0087.001 Develop AI-Generated Videos (Deepfakes) ; T0087.002 Deceptively Edit Video (Cheap Fakes) ; T0088 Develop Audio-Based Content ; T0088.001 Develop AI-Generated Audio (Deepfakes) ; T0088.002 Deceptively Edit Audio (Cheap Fakes) ; T0089 Obtain Private Documents ; T0089.001 Obtain Authentic Documents ; T0089.003 Alter Authentic Documents.
 
-## PREPARE
+**TA15 — Establish Assets** :
+T0010 Cultivate Ignorant Agents ; T0014 Prepare Fundraising Campaigns ; T0014.001 Raise Funds from Malign Actors ; T0014.002 Raise Funds from Ignorant Agents ; T0065 Prepare Physical Broadcast Capabilities ; T0091 Recruit Malign Actors ; T0091.001 Recruit Contractors ; T0091.002 Recruit Partisans ; T0091.003 Enlist Troll Accounts ; T0092 Build Network ; T0092.001 Create Organisations ; T0092.002 Use Follow Trains ; T0092.003 Create Community or Sub-Group ; T0093 Acquire/Recruit Network ; T0093.001 Fund Proxies ; T0093.002 Acquire Botnets ; T0094 Infiltrate Existing Networks ; T0094.001 Identify Susceptible Targets in Networks ; T0094.002 Utilise Butterfly Attacks ; T0095 Develop Owned Media Assets ; T0096 Leverage Content Farms ; T0096.001 Create Content Farms ; T0096.002 Outsource Content Creation to External Organisations ; T0113 Employ Commercial Analytic Firms ; T0145 Establish Account Imagery ; T0145.001 Copy Account Imagery ; T0145.002 AI-Generated Account Imagery ; T0145.003 Animal Account Imagery ; T0145.004 Scenery Account Imagery ; T0145.005 Illustrated Character Account Imagery ; T0145.006 Attractive Person Account Imagery ; T0145.007 Stock Image Account Imagery ; T0146 Account Asset ; T0146.001 Free Account Asset ; T0146.002 Paid Account Asset ; T0146.003 Verified Account Asset ; T0146.004 Administrator Account Asset ; T0146.005 Lookalike Account ID ; T0146.006 Open Access Platform ; T0146.007 Automated Account Asset ; T0147 Software Asset ; T0147.001 Game Asset ; T0147.002 Game Mod Asset ; T0147.003 Malware Asset ; T0147.004 Mobile App Asset ; T0148 Financial Instrument ; T0148.001 Online Banking Platform ; T0148.002 Bank Account Asset ; T0148.003 Payment Processing Platform ; T0148.004 Payment Processing Capability ; T0148.005 Subscription Processing Capability ; T0148.006 Crowdfunding Platform ; T0148.007 eCommerce Platform ; T0148.008 Cryptocurrency Exchange Platform ; T0148.009 Cryptocurrency Wallet ; T0149 Online Infrastructure ; T0149.001 Domain Asset ; T0149.002 Email Domain Asset ; T0149.003 Lookalike Domain ; T0149.004 Redirecting Domain Asset ; T0149.005 Server Asset ; T0149.006 IP Address Asset ; T0149.007 VPN Asset ; T0149.008 Proxy IP Address Asset ; T0149.009 Internet Connected Physical Asset ; T0150 Asset Origin ; T0150.001 Newly Created Asset ; T0150.002 Dormant Asset ; T0150.003 Pre-Existing Asset ; T0150.004 Repurposed Asset ; T0150.005 Compromised Asset ; T0150.006 Purchased Asset ; T0150.007 Rented Asset ; T0150.008 Bulk Created Asset.
 
-### TA14: Develop Narratives
+**TA16 — Establish Legitimacy** :
+T0097 Present Persona ; T0097.100 Individual Persona ; T0097.101 Local Persona ; T0097.102 Journalist Persona ; T0097.103 Activist Persona ; T0097.104 Hacktivist Persona ; T0097.105 Military Personnel Persona ; T0097.106 Recruiter Persona ; T0097.107 Researcher Persona ; T0097.108 Expert Persona ; T0097.109 Romantic Suitor Persona ; T0097.110 Party Official Persona ; T0097.111 Government Official Persona ; T0097.112 Government Employee Persona ; T0097.200 Institutional Persona ; T0097.201 Local Institution Persona ; T0097.202 News Outlet Persona ; T0097.203 Fact Checking Organisation Persona ; T0097.204 Think Tank Persona ; T0097.205 Business Persona ; T0097.206 Government Institution Persona ; T0097.207 NGO Persona ; T0097.208 Social Cause Persona ; T0098 Establish Inauthentic News Sites ; T0098.001 Create Inauthentic News Sites ; T0098.002 Leverage Existing Inauthentic News Sites ; T0100 Co-Opt Trusted Sources ; T0100.001 Co-Opt Trusted Individuals ; T0100.002 Co-Opt Grassroots Groups ; T0100.003 Co-Opt Influencers ; T0143 Persona Legitimacy ; T0143.001 Authentic Persona ; T0143.002 Fabricated Persona ; T0143.003 Impersonated Persona ; T0143.004 Parody Persona ; T0144 Persona Legitimacy Evidence ; T0144.001 Present Persona across Platforms ; T0144.002 Persona Template.
 
-- T0003: Leverage Existing Narratives
-- T0004: Develop Competing Narratives
-- T0022: Leverage Conspiracy Theory Narratives
-- T0022.001: Amplify Existing Conspiracy Theory Narratives
-- T0022.002: Develop Original Conspiracy Theory Narratives
-- T0040: Demand Insurmountable Proof
-- T0068: Respond to Breaking News Event or Active Crisis
-- T0082: Develop New Narratives
-- T0083: Integrate Target Audience Vulnerabilities into Narrative
+**TA05 — Microtarget** :
+T0016 Create Clickbait ; T0018 Purchase Targeted Advertisements ; T0101 Create Localised Content ; T0102 Leverage Echo Chambers/Filter Bubbles ; T0102.001 Use Existing Echo Chambers/Filter Bubbles ; T0102.002 Create Echo Chambers/Filter Bubbles ; T0102.003 Exploit Data Voids.
 
-### TA06: Develop Content
+EXECUTE (P03) :
 
-- T0015: Create Hashtags and Search Artifacts
-- T0019: Generate Information Pollution
-- T0019.001: Create Fake Research
-- T0019.002: Hijack Hashtags
-- T0023: Distort Facts
-- T0023.001: Reframe Context
-- T0023.002: Edit Open-Source Content
-- T0084: Reuse Existing Content
-- T0084.001: Use Copypasta
-- T0084.002: Plagiarize Content
-- T0084.003: Deceptively Labeled or Translated
-- T0084.004: Appropriate Content
-- T0085: Develop Text-based Content
-- T0085.001: Develop AI-Generated Text
-- T0085.002: Develop False or Altered Documents
-- T0085.003: Develop Inauthentic News Articles
-- T0086: Develop Image-based Content
-- T0086.001: Develop Memes
-- T0086.002: Develop AI-Generated Images (Deepfakes)
-- T0086.003: Deceptively Edit Images (Cheap Fakes)
-- T0086.004: Aggregate Information into Evidence Collages
-- T0087: Develop Video-based Content
-- T0087.001: Develop AI-Generated Videos (Deepfakes)
-- T0087.002: Deceptively Edit Video (Cheap Fakes)
-- T0088: Develop Audio-based Content
-- T0088.001: Develop AI-Generated Audio (Deepfakes)
-- T0088.002: Deceptively Edit Audio (Cheap Fakes)
-- T0089: Obtain Private Documents
-- T0089.001: Obtain Authentic Documents
-- T0089.002: Create Inauthentic Documents
-- T0089.003: Alter Authentic Documents
+**TA07 — Select Channels and Affordances** :
+T0029 Online Polls ; T0107 Bookmarking and Content Curation ; T0109 Consumer Review Networks ; T0110 Formal Diplomatic Channels ; T0111 Traditional Media ; T0111.001 TV ; T0111.002 Newspaper ; T0111.003 Radio ; T0151 Digital Community Hosting Asset ; T0151.001 Social Media Platform ; T0151.002 Online Community Group ; T0151.003 Online Community Page ; T0151.004 Chat Platform ; T0151.005 Chat Community Server ; T0151.006 Chat Room ; T0151.007 Chat Broadcast Group ; T0151.008 Microblogging Platform ; T0151.009 Legacy Online Forum Platform ; T0151.010 Community Forum Platform ; T0151.011 Community Sub-Forum ; T0151.012 Image Board Platform ; T0151.013 Question and Answer Platform ; T0151.014 Comments Section ; T0151.015 Online Game Platform ; T0151.016 Online Game Session ; T0151.017 Dating Platform ; T0152 Digital Content Hosting Asset ; T0152.001 Blogging Platform ; T0152.002 Blog Asset ; T0152.003 Website Hosting Platform ; T0152.004 Website Asset ; T0152.005 Paste Platform ; T0152.006 Video Platform ; T0152.007 Audio Platform ; T0152.008 Live Streaming Platform ; T0152.009 Software Delivery Platform ; T0152.010 File Hosting Platform ; T0152.011 Wiki Platform ; T0152.012 Subscription Service Platform ; T0153 Digital Content Delivery Asset ; T0153.001 Email Platform ; T0153.002 Link Shortening Platform ; T0153.003 Shortened Link Asset ; T0153.004 QR Code Asset ; T0153.005 Online Advertising Platform ; T0153.006 Content Recommendation Algorithm ; T0153.007 Direct Messaging ; T0154 Digital Content Creation Asset ; T0154.001 AI LLM Platform ; T0154.002 AI Media Platform ; T0155 Gated Asset ; T0155.001 Password Gated Asset ; T0155.002 Invite Gated Asset ; T0155.003 Approval Gated Asset ; T0155.004 Geoblocked Asset ; T0155.005 Paid Access Asset ; T0155.006 Subscription Access Asset ; T0155.007 Encrypted Communication Channel.
 
-### TA15: Establish Social Assets
+**TA08 — Conduct Pump Priming** :
+T0020 Trial Content ; T0042 Seed Kernel of Truth ; T0044 Seed Distortions ; T0045 Use Fake Experts ; T0046 Use Search Engine Optimisation.
 
-- T0007: Create Inauthentic Social Media Pages and Groups
-- T0010: Cultivate Ignorant Agents
-- T0013: Create Inauthentic Websites
-- T0014: Prepare Fundraising Campaigns
-- T0014.001: Raise Funds from Malign Actors
-- T0014.002: Raise Funds from Ignorant Agents
-- T0065: Prepare Physical Broadcast Capabilities
-- T0090: Create Inauthentic Accounts
-- T0090.001: Create Anonymous Accounts
-- T0090.002: Create Cyborg Accounts
-- T0090.003: Create Bot Accounts
-- T0090.004: Create Sockpuppet Accounts
-- T0091: Recruit Malign Actors
-- T0091.001: Recruit Contractors
-- T0091.002: Recruit Partisans
-- T0091.003: Enlist Troll Accounts
-- T0092: Build Network
-- T0092.001: Create Organizations
-- T0092.002: Use Follow Trains
-- T0092.003: Create Community or Sub-group
-- T0093: Acquire/Recruit Network
-- T0093.001: Fund Proxies
-- T0093.002: Acquire Botnets
-- T0094: Infiltrate Existing Networks
-- T0094.001: Identify Susceptible Targets in Networks
-- T0094.002: Utilize Butterfly Attacks
-- T0095: Develop Owned Media Assets
-- T0096: Leverage Content Farms
-- T0096.001: Create Content Farms
-- T0096.002: Outsource Content Creation to External Organizations
+**TA09 — Deliver Content** :
+T0114 Deliver Ads ; T0114.001 Social Media ; T0114.002 Traditional Media ; T0115 Post Content ; T0115.001 Share Memes ; T0115.002 Post Violative Content to Provoke Takedown and Backlash ; T0115.003 One-Way Direct Posting ; T0116 Comment or Reply on Content ; T0116.001 Post Inauthentic Social Media Comment ; T0117 Attract Traditional Media.
 
-### TA16: Establish Legitimacy
+**TA17 — Maximise Exposure** :
+T0039 Bait Influencer ; T0049 Flood Information Space ; T0049.001 Trolls Amplify and Manipulate ; T0049.002 Flood Existing Hashtag ; T0049.003 Bots Amplify via Automated Forwarding and Reposting ; T0049.004 Utilise Spamouflage ; T0049.005 Conduct Swarming ; T0049.006 Conduct Keyword Squatting ; T0049.007 Inauthentic Sites Amplify News and Narratives ; T0049.008 Generate Information Pollution ; T0118 Amplify Existing Narrative ; T0119 Cross-Posting ; T0119.001 Post across Groups ; T0119.002 Post across Platform ; T0119.003 Post across Disciplines ; T0120 Incentivize Sharing ; T0120.001 Use Affiliate Marketing Programmes ; T0120.002 Use Contests and Prizes ; T0121 Manipulate Platform Algorithm ; T0121.001 Bypass Content Blocking ; T0122 Direct Users to Alternative Platforms.
 
-- T0009: Create Fake Experts
-- T0009.001: Utilize Academic/Pseudoscientific Justifications
-- T0011: Compromise Legitimate Websites
-- T0097: Create Personas
-- T0097.001: Backstop Personas
-- T0098: Establish Inauthentic News Sites
-- T0098.001: Create Inauthentic News Sites
-- T0098.002: Leverage Existing Inauthentic News Sites
-- T0099: Prepare Assets Impersonating Legitimate Entities
-- T0099.001: Astroturfing
-- T0099.002: Spoof/Parody Account/Site
-- T0100: Co-opt Trusted Sources
-- T0100.001: Co-Opt Trusted Individuals
-- T0100.002: Co-Opt Grassroots Groups
-- T0100.003: Co-opt Influencers
+**TA18 — Drive Online Harms** :
+T0047 Censor Social Media as a Political Force ; T0048 Harass ; T0048.001 Boycott/Cancel Opponents ; T0048.002 Harass People Based on Identities ; T0048.003 Threaten to Dox ; T0048.004 Dox ; T0123 Control Information Environment through Offensive Cyberspace Operations ; T0123.001 Delete Opposing Content ; T0123.002 Block Content ; T0123.003 Destroy Information Generation Capabilities ; T0123.004 Conduct Server Redirect ; T0124 Suppress Opposition ; T0124.001 Report Non-Violative Opposing Content ; T0124.002 Goad People into Harmful Action (Stop Hitting Yourself) ; T0124.003 Exploit Platform TOS/Content Moderation ; T0125 Platform Filtering.
 
-### TA05: Microtarget
+**TA10 — Drive Offline Activity** :
+T0017 Conduct Fundraising ; T0017.001 Conduct Crowdfunding Campaigns ; T0057 Organise Events ; T0057.001 Pay for Physical Action ; T0057.002 Conduct Symbolic Action ; T0061 Sell Merchandise ; T0126 Encourage Attendance at Events ; T0126.001 Call to Action to Attend ; T0126.002 Facilitate Logistics or Support for Attendance ; T0127 Physical Violence ; T0127.001 Conduct Physical Violence ; T0127.002 Encourage Physical Violence.
 
-- T0016: Create Clickbait
-- T0018: Purchase Targeted Advertisements
-- T0101: Create Localized Content
-- T0102: Leverage Echo Chambers/Filter Bubbles
-- T0102.001: Use Existing Echo Chambers/Filter Bubbles
-- T0102.002: Create Echo Chambers/Filter Bubbles
-- T0102.003: Exploit Data Voids
-- T0103: Livestream
-- T0103.001: Video Livestream
-- T0103.002: Audio Livestream
+**TA11 — Persist in the Information Environment** :
+T0059 Play the Long Game ; T0060 Continue to Amplify ; T0128 Conceal Information Assets ; T0128.001 Use Pseudonyms ; T0128.002 Conceal Network Identity ; T0128.003 Distance Reputable Individuals from Operation ; T0128.004 Launder Information Assets ; T0128.005 Change Names of Information Assets ; T0129 Conceal Operational Activity ; T0129.001 Conceal Network Identity ; T0129.002 Generate Content Unrelated to Narrative ; T0129.003 Break Association with Content ; T0129.004 Delete URLs ; T0129.005 Coordinate on Encrypted/Closed Networks ; T0129.006 Deny Involvement ; T0129.007 Delete Accounts/Account Activity ; T0129.009 Remove Post Origins ; T0129.010 Misattribute Activity ; T0130 Conceal Infrastructure ; T0130.001 Conceal Sponsorship ; T0130.002 Utilise Bulletproof Hosting ; T0130.003 Use Shell Organisations ; T0130.004 Use Cryptocurrency ; T0130.005 Obfuscate Payment ; T0131 Exploit TOS/Content Moderation ; T0131.001 Legacy Web Content ; T0131.002 Post Borderline Content.
 
-### TA07: Select Channels and Affordances
+ASSESS (P04) :
 
-- T0029: Online Polls
-- T0043: Chat Apps
-- T0043.001: Use Encrypted Chat Apps
-- T0043.002: Use Unencrypted Chat Apps
-- T0104: Social Networks
-- T0104.001: Mainstream Social Networks
-- T0104.002: Dating Apps
-- T0104.003: Private/Closed Social Networks
-- T0104.004: Interest-Based Networks
-- T0104.005: Use Hashtags
-- T0104.006: Create Dedicated Hashtag
-- T0105: Media Sharing Networks
-- T0105.001: Photo Sharing
-- T0105.002: Video Sharing
-- T0105.003: Audio Sharing
-- T0106: Discussion Forums
-- T0106.001: Anonymous Message Boards
-- T0107: Bookmarking and Content Curation
-- T0108: Blogging and Publishing Networks
-- T0109: Consumer Review Networks
-- T0110: Formal Diplomatic Channels
-- T0111: Traditional Media
-- T0111.001: TV
-- T0111.002: Newspaper
-- T0111.003: Radio
-- T0112: Email
+**TA12 — Assess Effectiveness** :
+T0132 Measure Performance ; T0132.001 People Focused ; T0132.002 Content Focused ; T0132.003 View Focused ; T0133 Measure Effectiveness ; T0133.001 Behaviour Changes ; T0133.002 Content ; T0133.003 Awareness ; T0133.004 Knowledge ; T0133.005 Action/Attitude ; T0134 Measure Effectiveness Indicators (or KPIs) ; T0134.001 Message Reach ; T0134.002 Social Media Engagement.
 
-## EXECUTE
-
-### TA08: Conduct Pump Priming
-
-- T0020: Trial Content
-- T0039: Bait Legitimate Influencers
-- T0042: Seed Kernel of Truth
-- T0044: Seed Distortions
-- T0045: Use Fake Experts
-- T0046: Use Search Engine Optimization
-- T0113: Employ Commercial Analytic Firms
-
-### TA09: Deliver Content
-
-- T0114: Deliver Ads
-- T0114.001: Social Media
-- T0114.002: Traditional Media
-- T0115: Post Content
-- T0115.001: Share Memes
-- T0115.002: Post Violative Content to Provoke Takedown and Backlash
-- T0115.003: One-Way Direct Posting
-- T0116: Comment or Reply on Content
-- T0116.001: Post Inauthentic Social Media Comment
-- T0117: Attract Traditional Media
-
-### TA17: Maximize Exposure
-
-- T0049: Flooding the Information Space
-- T0049.001: Trolls Amplify and Manipulate
-- T0049.002: Hijack Existing Hashtag
-- T0049.003: Bots Amplify via Automated Forwarding and Reposting
-- T0049.004: Utilize Spamoflauge
-- T0049.005: Conduct Swarming
-- T0049.006: Conduct Keyword Squatting
-- T0049.007: Inauthentic Sites Amplify News and Narratives
-- T0118: Amplify Existing Narrative
-- T0119: Cross-Posting
-- T0119.001: Post Across Groups
-- T0119.002: Post Across Platform
-- T0119.003: Post Across Disciplines
-- T0120: Incentivize Sharing
-- T0120.001: Use Affiliate Marketing Programs
-- T0120.002: Use Contests and Prizes
-- T0121: Manipulate Platform Algorithm
-- T0121.001: Bypass Content Blocking
-- T0122: Direct Users to Alternative Platforms
-
-### TA18: Drive Online Harms
-
-- T0047: Censor Social Media as a Political Force
-- T0048: Harass
-- T0048.001: Boycott/"Cancel" Opponents
-- T0048.002: Harass People Based on Identities
-- T0048.003: Threaten to Dox
-- T0048.004: Dox
-- T0123: Control Information Environment through Offensive Cyberspace Operations
-- T0123.001: Delete Opposing Content
-- T0123.002: Block Content
-- T0123.003: Destroy Information Generation Capabilities
-- T0123.004: Conduct Server Redirect
-- T0124: Suppress Opposition
-- T0124.001: Report Non-Violative Opposing Content
-- T0124.002: Goad People into Harmful Action (Stop Hitting Yourself)
-- T0124.003: Exploit Platform TOS/Content Moderation
-- T0125: Platform Filtering
-
-### TA10: Drive Offline Activity
-
-- T0017: Conduct Fundraising
-- T0017.001: Conduct Crowdfunding Campaigns
-- T0057: Organize Events
-- T0057.001: Pay for Physical Action
-- T0057.002: Conduct Symbolic Action
-- T0061: Sell Merchandise
-- T0126: Encourage Attendance at Events
-- T0126.001: Call to Action to Attend
-- T0126.002: Facilitate Logistics or Support for Attendance
-- T0127: Physical Violence
-- T0127.001: Conduct Physical Violence
-- T0127.002: Encourage Physical Violence
-
-### TA11: Persist in the Information Environment
-
-- T0059: Play the Long Game
-- T0060: Continue to Amplify
-- T0128: Conceal People
-- T0128.001: Use Pseudonyms
-- T0128.002: Conceal Network Identity
-- T0128.003: Distance Reputable Individuals from Operation
-- T0128.004: Launder Accounts
-- T0128.005: Change Names of Accounts
-- T0129: Conceal Operational Activity
-- T0129.001: Conceal Network Identity
-- T0129.002: Generate Content Unrelated to Narrative
-- T0129.003: Break Association with Content
-- T0129.004: Delete URLs
-- T0129.005: Coordinate on Encrypted/Closed Networks
-- T0129.006: Deny Involvement
-- T0129.007: Delete Accounts/Account Activity
-- T0129.008: Redirect URLs
-- T0129.009: Remove Post Origins
-- T0129.010: Misattribute Activity
-- T0130: Conceal Infrastructure
-- T0130.001: Conceal Sponsorship
-- T0130.002: Utilize Bulletproof Hosting
-- T0130.003: Use Shell Organizations
-- T0130.004: Use Cryptocurrency
-- T0130.005: Obfuscate Payment
-- T0131: Exploit TOS/Content Moderation
-- T0131.001: Legacy Web Content
-- T0131.002: Post Borderline Content
-
-## ASSESS
-
-### TA12: Assess Effectiveness
-
-- T0132: Measure Performance
-- T0132.001: People Focused
-- T0132.002: Content Focused
-- T0132.003: View Focused
-- T0133: Measure Effectiveness
-- T0133.001: Behavior Changes
-- T0133.002: Content
-- T0133.003: Awareness
-- T0133.004: Knowledge
-- T0133.005: Action/Attitude
-- T0134: Measure Effectiveness Indicators (or KPIs)
-- T0134.001: Message Reach
-- T0134.002: Social Media Engagement
+**Note de méthode V1.6.** Trois techniques V1.5/V1.6 nouvelles à mobiliser systématiquement quand elles sont observables et qui n'existaient pas dans les versions antérieures :
+- T0097 et ses sous-techniques (T0097.100-208) pour qualifier le type de persona d'un acteur, y compris quand la persona est authentique (à coupler alors avec T0143.001 Authentic Persona).
+- T0143 (Persona Legitimacy) pour qualifier le statut de la persona : authentique, fabriquée, usurpée, ou parodique.
+- T0049.008 (Generate Information Pollution) pour la production de bruit informationnel à fin d'inondation de l'espace, **à privilégier au lieu de l'ancienne T0019** (obsolète en V1.6).

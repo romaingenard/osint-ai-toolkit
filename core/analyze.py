@@ -22,15 +22,15 @@ load_dotenv()
 
 client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
 
-# Modèles par défaut. Allocation dual :
-# - Sonnet 4.6 pour le volume (classifications DISARM du corpus complet,
-#   ~1000+ appels),
-# - Opus 4.7 pour le calibrage Centaure initial (5-10 articles pilotes où
-#   la qualité prime sur le coût).
-# Identifiants vérifiés sur platform.claude.com/docs (avril 2026).
+# Modèles par défaut. Décision brief 2bis v2 (19/05/2026) : bascule complète
+# sur Opus 4.7 pour la classification DISARM v4.2 (~7300 mots prompt système).
+# Le prompt caching (cache_control: ephemeral) amortit le coût du bloc
+# système stable sur les appels successifs.
+# Sonnet 4.6 conservé comme alternative volume (à activer manuellement si
+# nécessaire pour absorber un pic de classifications post-collecte).
 DEFAULT_MODEL_VOLUME = "claude-sonnet-4-6"
 DEFAULT_MODEL_HIGH_QUALITY = "claude-opus-4-7"
-DEFAULT_MODEL = DEFAULT_MODEL_VOLUME
+DEFAULT_MODEL = DEFAULT_MODEL_HIGH_QUALITY
 
 MAX_RETRIES = 3
 
