@@ -240,3 +240,18 @@ data/*.db-shm
 # Un fichier d'exemple est fourni : data/entities.csv.example
 data/entities.csv
 
+
+# Sauvegardes DB et CSV (contenu pro-AES, ne pas versionner)
+data/*.bak-*
+
+# Source brute Notion des entités (la version propre est entities.csv, gitignorée)
+data/entities_notion_source.md
+
+# Pilotes de collecte (contenu pro-russe / pro-AES)
+data/pilote-afrinz/
+
+# Spécimens HTML capturés pour brief 2bis (contenu pro-AES)
+samples/
+
+# Outputs locaux (non livrables)
+outputs/
