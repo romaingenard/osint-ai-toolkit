@@ -76,6 +76,7 @@ COLLECTORS = {
     "html_generic",
     "telegram_channel",
     "manual_event",
+    "wayback_cdx",
 }
 
 ENTITY_STATUSES = {"active", "inactive", "paywall", "geoblocked"}
@@ -406,6 +407,7 @@ ENTITY_REQUIRED_COLUMNS = [
     "html_title_selector",
     "html_date_selector",
     "html_content_selector",
+    "html_index_urls",
     "rate_limit_seconds",
     "status",
     "default_language",
@@ -516,6 +518,13 @@ def load_entities(path: str = "data/entities.csv") -> list[dict]:
 
         rls_raw = (row.get("rate_limit_seconds") or "").strip()
         row["rate_limit_seconds"] = float(rls_raw) if rls_raw else 2.0
+
+        # html_index_urls : valeurs multiples séparées par '|', parsées
+        # en list[str]. Vide pour les collectors non html_generic (la
+        # pagination est gérée en interne par fetch_wordpress_api et
+        # fetch_wayback_cdx).
+        raw_idx = (row.get("html_index_urls") or "").strip()
+        row["html_index_urls"] = [u.strip() for u in raw_idx.split("|") if u.strip()]
 
         entities.append(row)
 
