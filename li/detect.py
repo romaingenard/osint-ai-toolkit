@@ -305,6 +305,203 @@ def fetch_html_site(
     return articles
 
 
+def fetch_wayback_cdx(
+    entity: dict,
+    since: str,
+    until: str,
+    limit: int = 500,
+) -> list[dict]:
+    """Collecte via l'API Wayback CDX pour entités à éditeur défaillant.
+
+    Cible : entités catégorie B web dont la collecte directe est
+    impossible (infrastructure cassée, paywall archives, Cloudflare
+    Challenge, rendu JS sans fallback HTML). Méthode : interroger
+    `https://web.archive.org/cdx/search/cdx` avec le domaine de
+    l'entité et la fenêtre temporelle (YYYYMMDD), récupérer la liste
+    des URLs archivées, fetcher chaque snapshot, parser titre + date +
+    contenu via les sélecteurs CSS de l'entité (mêmes colonnes que
+    fetch_html_site).
+
+    Particularités méthodologiques (cf. brief §C3) :
+    - `archive_page()` n'est PAS appliqué côté caller (cf. collect_entity
+      branchement wayback_cdx) : l'article est déjà sur Wayback,
+      c'est précisément la source.
+    - `archive_wayback_url` = URL du snapshot utilisé, peuplé
+      directement par ce collecteur dans chaque dict article.
+    - `archive_local_path` = None (pas de SingleFile sur snapshot).
+    - Le pré-filtre lexical est appliqué côté collect_entity comme
+      pour les autres collecteurs.
+
+    Retry (Q4 brief 2bis) : 3 tentatives via _retry_request,
+    backoff 200/400/800ms sur 5xx + Timeout. Après 3 échecs CDX :
+    log et retour liste vide. Après 3 échecs snapshot individuel :
+    skip ce snapshot, continue la boucle.
+    """
+    base_url = entity["url"].rstrip("/")
+    rate_limit = entity.get("rate_limit_seconds", 2.0)
+    title_sel = entity.get("html_title_selector") or ""
+    date_sel = entity.get("html_date_selector") or ""
+    content_sel = entity.get("html_content_selector") or ""
+
+    if not (title_sel and content_sel):
+        raise ValueError(
+            f"fetch_wayback_cdx : entité {entity['entity_id']} — "
+            f"html_title_selector et html_content_selector obligatoires "
+            f"(date_selector tolérée vide, cf. brief §C3 option α)."
+        )
+
+    # Format dates CDX : YYYYMMDD (sans tirets). Conversion explicite.
+    try:
+        since_cdx = datetime.strptime(since, "%Y-%m-%d").strftime("%Y%m%d")
+        until_cdx = datetime.strptime(until, "%Y-%m-%d").strftime("%Y%m%d")
+    except ValueError as e:
+        raise ValueError(
+            f"fetch_wayback_cdx : format date invalide ({since}/{until}), "
+            f"attendu YYYY-MM-DD : {e}"
+        )
+
+    # Pattern CDX : domaine + chemin éventuel + '/*'.
+    parsed = urlparse(base_url)
+    cdx_pattern = (
+        f"{parsed.netloc}{parsed.path}/*"
+        if parsed.path
+        else f"{parsed.netloc}/*"
+    )
+
+    cdx_url = "https://web.archive.org/cdx/search/cdx"
+    cdx_params = {
+        "url": cdx_pattern,
+        "from": since_cdx,
+        "to": until_cdx,
+        "output": "json",
+        "filter": "statuscode:200",
+        "collapse": "urlkey",
+        "limit": limit,
+    }
+
+    # 1. Récupération de la liste des snapshots via CDX.
+    try:
+        resp = _retry_request(
+            lambda: requests.get(cdx_url, params=cdx_params, headers=HEADERS, timeout=90),
+            entity_id=entity["entity_id"],
+            max_attempts=3,
+            base_delay_ms=200,
+            retry_status=(500, 502, 503, 504),
+        )
+    except requests.RequestException as e:
+        print(f"[WAYBACK-CDX] {entity['entity_id']} requête CDX échouée : {e}")
+        return []
+    if resp.status_code >= 500:
+        print(f"[WAYBACK-CDX] {entity['entity_id']} CDX 5xx persistant après 3 tentatives")
+        return []
+    if resp.status_code != 200:
+        print(f"[WAYBACK-CDX] {entity['entity_id']} CDX status={resp.status_code} — abandon.")
+        return []
+
+    try:
+        rows = resp.json()
+    except ValueError as e:
+        print(f"[WAYBACK-CDX] {entity['entity_id']} JSON CDX parse erreur : {e}")
+        return []
+
+    if not rows or len(rows) <= 1:
+        print(
+            f"[WAYBACK-CDX] {entity['entity_id']} 0 snapshot trouvé sur "
+            f"fenêtre {since_cdx}..{until_cdx}"
+        )
+        return []
+
+    # rows[0] = header ['urlkey', 'timestamp', 'original', ...].
+    snapshots = rows[1:]
+    print(
+        f"[WAYBACK-CDX] {entity['entity_id']} {len(snapshots)} snapshot(s) candidat(s)"
+    )
+
+    # 2. Fetch + parsing de chaque snapshot.
+    articles: list[dict] = []
+    for snap in snapshots:
+        timestamp = snap[1]
+        original_url = snap[2]
+
+        # Filtre URL non-articles (heuristique défensive C3.1.bis 21/05).
+        # /abonnements, /annonces, /archives/ ajoutés depuis observation empirique L'Essor.
+        # Risque : casser collecte si entité future structure articles sous /archives/.
+        parsed_orig = urlparse(original_url)
+        if any(x in parsed_orig.path for x in (
+            "/tag/", "/category/", "/wp-", "/auteur/", "/author/",
+            "/abonnements", "/annonces", "/archives/",
+        )):
+            continue
+        if parsed_orig.path in ("", "/"):
+            continue
+
+        snapshot_url = f"https://web.archive.org/web/{timestamp}/{original_url}"
+        try:
+            snap_resp = _retry_request(
+                lambda u=snapshot_url: requests.get(u, headers=HEADERS, timeout=60),
+                entity_id=entity["entity_id"],
+                max_attempts=3,
+                base_delay_ms=200,
+                retry_status=(500, 502, 503, 504),
+            )
+        except requests.RequestException as e:
+            print(f"[WAYBACK-CDX] {snapshot_url} fetch échec : {e} — skip")
+            time.sleep(rate_limit)
+            continue
+        if snap_resp.status_code != 200:
+            print(f"[WAYBACK-CDX] {snapshot_url} HTTP {snap_resp.status_code} — skip")
+            time.sleep(rate_limit)
+            continue
+
+        soup = BeautifulSoup(snap_resp.text, "html.parser")
+
+        title_node = soup.select_one(title_sel)
+        if title_node is None:
+            time.sleep(rate_limit)
+            continue
+        title = title_node.get_text(strip=True)
+
+        date_val: str | None = None
+        if date_sel:
+            date_node = soup.select_one(date_sel)
+            if date_node is not None:
+                date_val = (
+                    date_node.get("datetime")
+                    or date_node.get_text(strip=True)
+                    or None
+                )
+
+        content_node = soup.select_one(content_sel)
+        if content_node is None:
+            time.sleep(rate_limit)
+            continue
+        text = content_node.get_text("\n", strip=True)
+
+        # Filtre temporel : si date_val parseable hors fenêtre → skip.
+        # Tolérance : si date_val absent ou non-parseable → inclure.
+        if date_val:
+            date_only = date_val[:10]
+            if date_only < since or date_only > until:
+                time.sleep(rate_limit)
+                continue
+
+        articles.append({
+            "url": original_url,
+            "title": title,
+            "date_published": date_val,
+            "text_content": text,
+            "language": entity["default_language"],
+            "archive_wayback_url": snapshot_url,
+            "archive_local_path": None,
+        })
+        time.sleep(rate_limit)
+
+    print(
+        f"[WAYBACK-CDX] {entity['entity_id']} : {len(articles)} article(s) collecté(s)"
+    )
+    return articles
+
+
 # Regex pré-compilée, extraction d'un message_id depuis un permalink
 # Telegram (data-post="channel/123").
 _TG_MSG_ID_RE = re.compile(r"/(\d+)$")
@@ -615,6 +812,7 @@ _COLLECTORS = {
     "wordpress_api": fetch_wordpress_api,
     "html_generic": fetch_html_site,
     "telegram_channel": fetch_telegram_channel,
+    "wayback_cdx": fetch_wayback_cdx,
 }
 
 
@@ -662,12 +860,19 @@ def collect_entity(
 
         passed, reason = config.passes_inclusion_filter(text, country=entity["country"], title=art.get("title"))
 
-        try:
-            wb_url, local_path = archive_page(art["url"], entity)
-        except ArchiveError as e:
-            print(f"[ORCH] {e}")
-            stats["archive_failures"] += 1
-            continue
+        if collector_name == "wayback_cdx":
+            # Branchement Q7 brief 2bis 21/05, particularité méthodologique brief §C3.
+            # Article déjà sur Wayback : pas d'archivage redondant.
+            # archive_wayback_url + archive_local_path déjà portés par le collecteur.
+            wb_url = art.get("archive_wayback_url")
+            local_path = art.get("archive_local_path")
+        else:
+            try:
+                wb_url, local_path = archive_page(art["url"], entity)
+            except ArchiveError as e:
+                print(f"[ORCH] {e}")
+                stats["archive_failures"] += 1
+                continue
 
         article_data = {
             "entity_id": entity["entity_id"],
