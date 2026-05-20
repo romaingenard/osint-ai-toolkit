@@ -212,29 +212,43 @@ def fetch_html_site(
             f"pour ce collecteur."
         )
 
-    # Home : récupérer les liens d'articles.
-    try:
-        home = requests.get(base_url, headers=HEADERS, timeout=30)
-        home.raise_for_status()
-    except requests.RequestException as e:
-        print(f"[HTML] {base_url} home inaccessible : {e}")
-        return []
-
-    soup = BeautifulSoup(home.text, "html.parser")
+    # Pages d'index à parcourir. Si html_index_urls est défini et non vide,
+    # on itère sur la liste des rubriques. Sinon, on retombe sur la home.
+    # Cas (a) : html_index_urls vide → [base_url] (comportement historique)
+    # Cas (b) : html_index_urls = [url1] → 1 rubrique ciblée
+    # Cas (c) : html_index_urls = [url1, ...] → N rubriques avec sleep entre
+    index_urls = entity.get("html_index_urls") or []
+    if not index_urls:
+        index_urls = [base_url]
     parsed_base = urlparse(base_url)
 
     article_urls: set[str] = set()
-    for a in soup.find_all("a", href=True):
-        href = a["href"]
-        full = urljoin(base_url + "/", href)
-        parsed = urlparse(full)
-        if parsed.netloc != parsed_base.netloc:
+    for idx_i, index_url in enumerate(index_urls):
+        try:
+            home = requests.get(index_url, headers=HEADERS, timeout=30)
+            home.raise_for_status()
+        except requests.RequestException as e:
+            print(f"[HTML] {index_url} index inaccessible : {e} — skip rubrique")
+            if len(index_urls) > 1 and idx_i < len(index_urls) - 1:
+                time.sleep(rate_limit)
             continue
-        if any(x in parsed.path for x in ("/tag/", "/category/", "/wp-", "/auteur/", "/author/")):
-            continue
-        if parsed.path in ("", "/"):
-            continue
-        article_urls.add(full)
+
+        soup = BeautifulSoup(home.text, "html.parser")
+        for a in soup.find_all("a", href=True):
+            href = a["href"]
+            full = urljoin(index_url + "/", href)
+            parsed = urlparse(full)
+            if parsed.netloc != parsed_base.netloc:
+                continue
+            if any(x in parsed.path for x in ("/tag/", "/category/", "/wp-", "/auteur/", "/author/")):
+                continue
+            if parsed.path in ("", "/"):
+                continue
+            article_urls.add(full)
+
+        # Sleep entre rubriques (uniquement cas c, pas après la dernière)
+        if len(index_urls) > 1 and idx_i < len(index_urls) - 1:
+            time.sleep(rate_limit)
 
     articles: list[dict] = []
     for url in sorted(article_urls):
