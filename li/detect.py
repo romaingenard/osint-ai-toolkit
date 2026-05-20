@@ -57,6 +57,44 @@ def _text_hash(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _retry_request(
+    func,
+    entity_id: str,
+    max_attempts: int = 3,
+    base_delay_ms: int = 200,
+    retry_status: tuple[int, ...] = (500, 502, 503, 504),
+) -> "requests.Response":
+    """Retry un appel HTTP avec backoff exponentiel sur 5xx + Timeout.
+
+    Délais entre tentatives : base_delay_ms * 2^(attempt-1).
+    Par défaut : 200ms, 400ms, 800ms (cf. Q4 brief 2bis pré-tranchée).
+
+    Comportement après max_attempts échouées :
+    - Timeout persistant : raise la dernière requests.Timeout
+      (le caller la catche dans son try/except RequestException).
+    - 5xx persistant : return la response (status >= 500), le caller
+      doit vérifier explicitement resp.status_code >= 500 et break.
+
+    Réutilisable par fetch_wordpress_api (C1.2) et fetch_wayback_cdx (C3).
+    """
+    last_exc: requests.Timeout | None = None
+    resp = None
+    for attempt in range(1, max_attempts + 1):
+        try:
+            resp = func()
+            if resp.status_code not in retry_status:
+                return resp
+            print(f"[retry] {entity_id} attempt {attempt}/{max_attempts}: HTTP {resp.status_code}")
+        except requests.Timeout as e:
+            last_exc = e
+            print(f"[retry] {entity_id} attempt {attempt}/{max_attempts}: timeout {e}")
+        if attempt < max_attempts:
+            time.sleep((base_delay_ms / 1000.0) * (2 ** (attempt - 1)))
+    if resp is None and last_exc is not None:
+        raise last_exc
+    return resp
+
+
 def fetch_wordpress_api(
     entity: dict,
     since: str,
@@ -97,11 +135,18 @@ def fetch_wordpress_api(
 
     while params["page"] <= max_pages:
         try:
-            resp = requests.get(
-                api_url, params=params, headers=HEADERS, timeout=30
+            resp = _retry_request(
+                lambda: requests.get(api_url, params=params, headers=HEADERS, timeout=30),
+                entity_id=entity["entity_id"],
+                max_attempts=3,
+                base_delay_ms=200,
+                retry_status=(500, 502, 503, 504),
             )
         except requests.RequestException as e:
             print(f"[WP-API] {api_url} requête échouée (page {params['page']}) : {e}")
+            break
+        if resp.status_code >= 500:
+            print(f"[WP-API] {api_url} 5xx persistant après 3 tentatives (page {params['page']})")
             break
 
         if resp.status_code == 400 and params["page"] > 1:
