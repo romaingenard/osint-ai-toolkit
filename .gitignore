@@ -255,3 +255,9 @@ samples/
 
 # Outputs locaux (non livrables)
 outputs/
+
+# Scripts opérationnels ad-hoc (smoke, pré-flight, filtres post-collecte)
+scripts/
+
+# Briefs Claude Code (artefacts opérationnels privés)
+briefs_claude_code/
