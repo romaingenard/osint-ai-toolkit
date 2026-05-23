@@ -785,21 +785,69 @@ def archive_page_singlefile(
     return str(out_path)
 
 
-def archive_page(url: str, entity: dict) -> tuple[str | None, str | None]:
+def archive_page_http(
+    url: str,
+    entity_id: str,
+    output_dir: str = "data/archives",
+    timeout: int = 30,
+) -> str | None:
+    """Sauvegarde locale du HTML brut via requests.get.
+
+    Remplaçant de archive_page_singlefile pour les sites où SingleFile
+    échoue (Chromium headless bloqué par certains comportements JS,
+    diagnostic 23/05 sur rtb.bf et lesahel.org).
+
+    Chemin : <output_dir>/<entity_id>/<YYYY-MM-DD>/<sha256_url>.html.
+    HTML brut tel que retourné par le serveur, sans inlining CSS/JS/images.
+    Suffisant pour Décision A doc 05 (preuve d'existence à une date).
+
+    Retourne None si la requête HTTP échoue ou si le body est vide.
+    """
+    date_segment = datetime.now().strftime("%Y-%m-%d")
+    url_hash = hashlib.sha256(url.encode("utf-8")).hexdigest()[:32]
+    out_dir = Path(output_dir) / entity_id / date_segment
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / f"{url_hash}.html"
+
+    try:
+        resp = requests.get(url, headers=HEADERS, timeout=timeout)
+    except requests.RequestException as e:
+        print(f"[HTTP-ARCHIVE] échec {url} — exception : {e}")
+        return None
+
+    if resp.status_code != 200:
+        print(f"[HTTP-ARCHIVE] échec {url} — status={resp.status_code}")
+        return None
+
+    if not resp.text or len(resp.text) < 500:
+        print(f"[HTTP-ARCHIVE] échec {url} — body vide ou trop court ({len(resp.text)} chars)")
+        return None
+
+    out_path.write_text(resp.text, encoding="utf-8")
+    return str(out_path)
+
+
+def archive_page(url: str, entity: dict, skip_wayback: bool = False) -> tuple[str | None, str | None]:
     """Orchestre les deux archivages. Retourne (wayback_url, local_path).
 
     Règle méthodologique (doc 05 décision A) : si les DEUX archivages
     échouent, on lève ArchiveError — l'article n'est pas stocké. Si un
     seul échoue, on log et on continue avec None pour le champ manquant.
+
+    skip_wayback (Décision M doc 03, 23/05) : si True, on saute l'appel
+    Wayback (wb = None d'office) pendant la collecte exhaustive S10-S11.
+    L'archivage Wayback sera rejoué en batch post-classification.
+    SingleFile reste en ligne. ArchiveError n'est levée que si SingleFile
+    échoue aussi (sf is None).
     """
-    wb = archive_page_wayback(url)
-    sf = archive_page_singlefile(url, entity["entity_id"])
+    wb = None if skip_wayback else archive_page_wayback(url)
+    sf = archive_page_http(url, entity["entity_id"])
     if wb is None and sf is None:
         raise ArchiveError(
             f"Archivage double échec pour {url} — "
             "aucune trace Wayback ni SingleFile. Article non stocké."
         )
-    if wb is None:
+    if wb is None and not skip_wayback:
         print(f"[ARCHIVE] {url} — Wayback échec, SingleFile OK")
     if sf is None:
         print(f"[ARCHIVE] {url} — SingleFile échec, Wayback OK")
@@ -821,6 +869,7 @@ def collect_entity(
     since: str,
     until: str,
     db_path: str = store_li.DEFAULT_DB_PATH,
+    skip_wayback: bool = False,
 ) -> dict:
     """Collecte + archivage + pré-filtre + stockage pour une entité.
 
@@ -868,7 +917,7 @@ def collect_entity(
             local_path = art.get("archive_local_path")
         else:
             try:
-                wb_url, local_path = archive_page(art["url"], entity)
+                wb_url, local_path = archive_page(art["url"], entity, skip_wayback=skip_wayback)
             except ArchiveError as e:
                 print(f"[ORCH] {e}")
                 stats["archive_failures"] += 1
@@ -982,6 +1031,14 @@ def main() -> None:
         "--entities-csv", default="data/entities.csv",
         help="Chemin de entities.csv",
     )
+    parser.add_argument(
+        "--skip-wayback", action="store_true",
+        help=(
+            "Saute l'archivage Wayback pendant la collecte (Décision M doc 03, "
+            "23/05). SingleFile reste actif. Wayback rejoué en batch "
+            "post-classification."
+        ),
+    )
     args = parser.parse_args()
 
     store_li.init_db(args.db)
@@ -1004,7 +1061,7 @@ def main() -> None:
         print(f"Événement inséré : article_id={aid}")
         return
 
-    stats = collect_entity(entity, args.since, args.until, args.db)
+    stats = collect_entity(entity, args.since, args.until, args.db, skip_wayback=args.skip_wayback)
     print(f"Bilan : {stats}")
 
 
