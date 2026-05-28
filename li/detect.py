@@ -137,6 +137,7 @@ def fetch_wordpress_api(
         "page": 1,
         "orderby": "date",
         "order": "desc",
+        "lang": entity["default_language"],
     }
 
     articles: list[dict] = []
