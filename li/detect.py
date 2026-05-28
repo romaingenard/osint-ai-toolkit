@@ -581,7 +581,9 @@ def fetch_telegram_channel(
                 continue
             seen_msg_ids.add(msg_id)
 
-            time_node = msg.select_one("time")
+            # Messages avec vidéo : la 1re <time> est la durée du média
+            # (sans attribut datetime). On cible la <time> qui porte la date.
+            time_node = msg.select_one("time[datetime]")
             date_val = time_node.get("datetime") if time_node else None
 
             text_node = msg.select_one(".tgme_widget_message_text")
