@@ -569,7 +569,12 @@ def fetch_telegram_channel(
         if not messages:
             break
 
-        oldest_msg_id: str | None = None
+        # Curseur de pagination : t.me/s/ ordonne les messages du plus ancien
+        # (haut) au plus récent (bas). Le `?before=` doit repartir du plus
+        # ANCIEN id de la page (min numérique) pour reculer de ~20 messages par
+        # page. On le calcule sur tous les messages dont le regex match, y
+        # compris ceux déjà vus, pour garantir une progression monotone.
+        page_oldest_id: int | None = None
 
         for msg in messages:
             data_post = msg.get("data-post", "")
@@ -577,6 +582,9 @@ def fetch_telegram_channel(
             if not m:
                 continue
             msg_id = m.group(1)
+            mid = int(msg_id)
+            if page_oldest_id is None or mid < page_oldest_id:
+                page_oldest_id = mid
             if msg_id in seen_msg_ids:
                 continue
             seen_msg_ids.add(msg_id)
@@ -592,7 +600,6 @@ def fetch_telegram_channel(
             if not text:
                 # Posts image-seule ou média-seul : on saute (pas de contenu
                 # textuel pour la classification DISARM).
-                oldest_msg_id = msg_id
                 continue
 
             if date_val:
@@ -601,7 +608,6 @@ def fetch_telegram_channel(
                     should_stop = True
                     break
                 if date_only > until:
-                    oldest_msg_id = msg_id
                     continue
 
             msg_url = f"https://t.me/{data_post}" if data_post else url
@@ -614,11 +620,10 @@ def fetch_telegram_channel(
                 "language": lang,
                 "_is_duplicate_for_d3lta": is_d3lta,
             })
-            oldest_msg_id = msg_id
 
-        if oldest_msg_id is None:
+        if page_oldest_id is None:
             break
-        before = oldest_msg_id
+        before = str(page_oldest_id)
         pages_done += 1
         time.sleep(rate_limit)
 
