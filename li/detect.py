@@ -45,6 +45,15 @@ HEADERS = {
 }
 
 
+# Session partagée pour le keep-alive : l'établissement TCP/TLS vers les
+# sources est instable derrière le VPN actif (~50% de timeouts à froid),
+# mais une connexion déjà ouverte est réutilisée de façon fiable. Tous les
+# appels réseau passent par SESSION pour amortir le handshake une seule fois.
+# trust_env=False : on ignore le proxy système résiduel (flaky lui aussi).
+SESSION = requests.Session()
+SESSION.trust_env = False
+
+
 class ArchiveError(RuntimeError):
     """Levée quand les deux archivages (Wayback + SingleFile) échouent.
     Par contrat méthodologique (doc 05 §A), on refuse de stocker un
@@ -136,7 +145,7 @@ def fetch_wordpress_api(
     while params["page"] <= max_pages:
         try:
             resp = _retry_request(
-                lambda: requests.get(api_url, params=params, headers=HEADERS, timeout=30),
+                lambda: SESSION.get(api_url, params=params, headers=HEADERS, timeout=30),
                 entity_id=entity["entity_id"],
                 max_attempts=3,
                 base_delay_ms=200,
@@ -225,7 +234,7 @@ def fetch_html_site(
     article_urls: set[str] = set()
     for idx_i, index_url in enumerate(index_urls):
         try:
-            home = requests.get(index_url, headers=HEADERS, timeout=30)
+            home = SESSION.get(index_url, headers=HEADERS, timeout=30)
             home.raise_for_status()
         except requests.RequestException as e:
             print(f"[HTML] {index_url} index inaccessible : {e} — skip rubrique")
@@ -253,7 +262,7 @@ def fetch_html_site(
     articles: list[dict] = []
     for url in sorted(article_urls):
         try:
-            resp = requests.get(url, headers=HEADERS, timeout=30)
+            resp = SESSION.get(url, headers=HEADERS, timeout=30)
             resp.raise_for_status()
         except requests.RequestException as e:
             print(f"[HTML] {url} erreur fetch : {e} — skip")
@@ -382,7 +391,7 @@ def fetch_wayback_cdx(
     # 1. Récupération de la liste des snapshots via CDX.
     try:
         resp = _retry_request(
-            lambda: requests.get(cdx_url, params=cdx_params, headers=HEADERS, timeout=90),
+            lambda: SESSION.get(cdx_url, params=cdx_params, headers=HEADERS, timeout=90),
             entity_id=entity["entity_id"],
             max_attempts=3,
             base_delay_ms=200,
@@ -438,7 +447,7 @@ def fetch_wayback_cdx(
         snapshot_url = f"https://web.archive.org/web/{timestamp}/{original_url}"
         try:
             snap_resp = _retry_request(
-                lambda u=snapshot_url: requests.get(u, headers=HEADERS, timeout=60),
+                lambda u=snapshot_url: SESSION.get(u, headers=HEADERS, timeout=60),
                 entity_id=entity["entity_id"],
                 max_attempts=3,
                 base_delay_ms=200,
@@ -548,7 +557,7 @@ def fetch_telegram_channel(
     while pages_done < max_pages and not should_stop:
         url = base_handle if before is None else f"{base_handle}?before={before}"
         try:
-            resp = requests.get(url, headers=HEADERS, timeout=30)
+            resp = SESSION.get(url, headers=HEADERS, timeout=30)
             resp.raise_for_status()
         except requests.RequestException as e:
             print(f"[TG] {url} erreur : {e}")
@@ -631,7 +640,7 @@ def fetch_manual_event(entity: dict, event_url: str) -> dict:
     autres collecteurs).
     """
     try:
-        resp = requests.get(event_url, headers=HEADERS, timeout=30)
+        resp = SESSION.get(event_url, headers=HEADERS, timeout=30)
         resp.raise_for_status()
     except requests.RequestException as e:
         raise RuntimeError(f"fetch_manual_event : {event_url} inaccessible : {e}")
@@ -686,7 +695,7 @@ def archive_page_wayback(url: str, timeout: int = 60) -> str | None:
 
     for attempt in range(3):
         try:
-            resp = requests.get(
+            resp = SESSION.get(
                 save_url, headers=HEADERS, timeout=timeout,
                 allow_redirects=False,
             )
@@ -810,7 +819,13 @@ def archive_page_http(
     out_path = out_dir / f"{url_hash}.html"
 
     try:
-        resp = requests.get(url, headers=HEADERS, timeout=timeout)
+        resp = _retry_request(
+            lambda: SESSION.get(url, headers=HEADERS, timeout=timeout),
+            entity_id=entity_id,
+            max_attempts=3,
+            base_delay_ms=200,
+            retry_status=(500, 502, 503, 504),
+        )
     except requests.RequestException as e:
         print(f"[HTTP-ARCHIVE] échec {url} — exception : {e}")
         return None
