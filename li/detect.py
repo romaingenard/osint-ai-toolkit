@@ -551,7 +551,7 @@ def fetch_telegram_channel(
     articles: list[dict] = []
     seen_msg_ids: set[str] = set()
     before: str | None = None
-    max_pages = 50
+    max_pages = 150
     pages_done = 0
     should_stop = False
 
