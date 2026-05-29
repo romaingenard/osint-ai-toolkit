@@ -637,6 +637,106 @@ def fetch_telegram_channel(
     return articles
 
 
+# === COLLECTE YOUTUBE (voie 2 : transcription automatique) ===============
+#
+# Voie 2 = on ne se contente pas des métadonnées OpenGraph (titre/description)
+# mais on récupère le verbatim de la vidéo via la piste de sous-titres
+# auto-générée (youtube-transcript-api) + les métadonnées via yt-dlp.
+# Prototype lot (a) : branché dans fetch_manual_event par détection d'URL.
+
+_YOUTUBE_HOST_RE = re.compile(r"(^|\.)(youtube\.com|youtu\.be)$", re.IGNORECASE)
+
+# video_id = 11 caractères [A-Za-z0-9_-]. On couvre les formes d'URL vidéo
+# rencontrées : watch?v=, youtu.be/<id>, /shorts/<id>, /embed/<id>.
+_YOUTUBE_ID_RE = re.compile(
+    r"(?:v=|/(?:shorts|embed)/|youtu\.be/)([A-Za-z0-9_-]{11})"
+)
+
+
+def _is_youtube_url(url: str) -> bool:
+    """True si l'URL pointe sur un host YouTube (vidéo ou chaîne)."""
+    return bool(_YOUTUBE_HOST_RE.search(urlparse(url).netloc))
+
+
+def _extract_video_id(url: str) -> str | None:
+    """Extrait le video_id (11 car.) d'une URL de vidéo YouTube.
+
+    Retourne None si l'URL ne désigne pas une vidéo unique (ex. URL de
+    chaîne @handle) — l'appelant doit alors traiter le cas en amont.
+    """
+    m = _YOUTUBE_ID_RE.search(url)
+    return m.group(1) if m else None
+
+
+def fetch_youtube_transcript(entity: dict, event_url: str) -> dict:
+    """Collecte voie 2 d'une vidéo YouTube : transcription + métadonnées.
+
+    - text_content : verbatim issu de la piste de sous-titres FR
+      auto-générée (youtube-transcript-api).
+    - title / date_published : métadonnées via yt-dlp (upload_date YYYYMMDD
+      normalisée en ISO). La durée est loggée mais hors schéma article.
+
+    Retourne le même dict que fetch_manual_event :
+      {url, title, date_published, text_content, language}.
+
+    Imports paresseux : yt-dlp et youtube-transcript-api ne sont requis que
+    pour ce collecteur, pas pour le reste du pipeline.
+    """
+    from youtube_transcript_api import YouTubeTranscriptApi
+    import yt_dlp
+
+    video_id = _extract_video_id(event_url)
+    if not video_id:
+        raise RuntimeError(
+            f"fetch_youtube_transcript : pas de video_id extractible depuis "
+            f"{event_url} (URL de chaîne plutôt que de vidéo ?)"
+        )
+
+    # --- Métadonnées via yt-dlp (sans téléchargement) ---
+    ydl_opts = {"quiet": True, "skip_download": True, "no_warnings": True}
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(event_url, download=False)
+    except Exception as e:
+        raise RuntimeError(f"fetch_youtube_transcript : yt-dlp {event_url} : {e}")
+
+    title = info.get("title") or "[Titre à compléter]"
+    upload_date = info.get("upload_date")  # 'YYYYMMDD' ou None
+    date_published = None
+    if upload_date and len(upload_date) == 8 and upload_date.isdigit():
+        date_published = (
+            f"{upload_date[0:4]}-{upload_date[4:6]}-{upload_date[6:8]}"
+        )
+    duration = info.get("duration")  # secondes, hors schéma — loggé
+    print(
+        f"[YOUTUBE] {video_id} : '{title}' | upload={date_published} | "
+        f"durée={duration}s"
+    )
+
+    # --- Transcription FR auto via youtube-transcript-api (API >=1.x) ---
+    try:
+        fetched = YouTubeTranscriptApi().fetch(video_id, languages=["fr"])
+    except Exception as e:
+        raise RuntimeError(
+            f"fetch_youtube_transcript : transcription FR indisponible pour "
+            f"{video_id} : {e}"
+        )
+
+    text = " ".join(s.text for s in fetched if s.text).strip()
+    if not text:
+        raise RuntimeError(
+            f"fetch_youtube_transcript : transcription vide pour {video_id}"
+        )
+
+    return {
+        "url": event_url,
+        "title": title,
+        "date_published": date_published,
+        "text_content": text,
+        "language": getattr(fetched, "language_code", None) or "fr",
+    }
+
+
 def fetch_manual_event(entity: dict, event_url: str) -> dict:
     """Collecte ponctuelle d'un événement (URL unique, ex. vidéo TikTok/FB).
 
@@ -644,9 +744,16 @@ def fetch_manual_event(entity: dict, event_url: str) -> dict:
     article:published_time si présent). Le contenu détaillé est à compléter
     manuellement par Romain après insertion (update de text_content en DB).
 
+    Cas YouTube (voie 2) : si l'URL pointe sur une vidéo YouTube, on délègue
+    à fetch_youtube_transcript qui remplit text_content avec le verbatim
+    transcrit. Le reste du pipeline (filtre/archivage/insert) est inchangé.
+
     collection_mode='event' dans l'article résultant (vs 'scan' pour les
     autres collecteurs).
     """
+    if _is_youtube_url(event_url):
+        return fetch_youtube_transcript(entity, event_url)
+
     try:
         resp = SESSION.get(event_url, headers=HEADERS, timeout=30)
         resp.raise_for_status()
