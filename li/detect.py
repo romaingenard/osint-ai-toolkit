@@ -146,7 +146,14 @@ def fetch_wordpress_api(
     while params["page"] <= max_pages:
         try:
             resp = _retry_request(
-                lambda: SESSION.get(api_url, params=params, headers=HEADERS, timeout=30),
+                lambda: SESSION.get(
+                    api_url,
+                    params=params,
+                    # Accept explicite : le WAF de certaines sources WP rejette
+                    # `*/*` (défaut requests) en 415 selon l'IP de sortie.
+                    headers={**HEADERS, "Accept": "application/json"},
+                    timeout=30,
+                ),
                 entity_id=entity["entity_id"],
                 max_attempts=3,
                 base_delay_ms=200,
