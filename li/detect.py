@@ -60,6 +60,14 @@ class ArchiveError(RuntimeError):
     article qui n'a aucune trace archivée."""
 
 
+class YoutubeTranscriptBanError(RuntimeError):
+    """D2 : levée quand l'accès aux sous-titres est bloqué par réputation IP
+    (RequestBlocked / IpBlocked, typiquement 429 sur l'endpoint timedtext).
+    Sous-classe de RuntimeError : rétro-compatible avec les `except RuntimeError`
+    existants, mais distingue EXPLICITEMENT un ban d'une absence réelle de piste
+    FR (qui reste un RuntimeError générique). Un ban doit rester visible."""
+
+
 # === COUCHE COLLECTE ======================================================
 
 def _text_hash(text: str) -> str:
@@ -690,6 +698,11 @@ def fetch_youtube_transcript(entity: dict, event_url: str) -> dict:
     pour ce collecteur, pas pour le reste du pipeline.
     """
     from youtube_transcript_api import YouTubeTranscriptApi
+    from youtube_transcript_api import (
+        RequestBlocked,
+        NoTranscriptFound,
+        TranscriptsDisabled,
+    )
     import yt_dlp
 
     video_id = _extract_video_id(event_url)
@@ -721,12 +734,26 @@ def fetch_youtube_transcript(entity: dict, event_url: str) -> dict:
     )
 
     # --- Transcription FR auto via youtube-transcript-api (API >=1.x) ---
+    # D2 : un ban réputation IP (RequestBlocked, dont IpBlocked ; typiquement 429
+    # sur timedtext) doit rester VISIBLE et distinct d'une absence réelle de piste
+    # FR. On lève YoutubeTranscriptBanError pour le ban, RuntimeError générique
+    # pour l'absence réelle.
     try:
         fetched = YouTubeTranscriptApi().fetch(video_id, languages=["fr"])
-    except Exception as e:
+    except RequestBlocked as e:
+        raise YoutubeTranscriptBanError(
+            f"fetch_youtube_transcript : ACCES BLOQUE (ban reputation IP / 429 "
+            f"timedtext) pour {video_id} : {type(e).__name__}: {e}"
+        )
+    except (NoTranscriptFound, TranscriptsDisabled) as e:
         raise RuntimeError(
             f"fetch_youtube_transcript : transcription FR indisponible pour "
-            f"{video_id} : {e}"
+            f"{video_id} (absence reelle : {type(e).__name__})"
+        )
+    except Exception as e:
+        raise RuntimeError(
+            f"fetch_youtube_transcript : erreur inattendue transcription "
+            f"{video_id} : {type(e).__name__}: {e}"
         )
 
     text = " ".join(s.text for s in fetched if s.text).strip()
