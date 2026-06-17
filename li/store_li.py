@@ -24,6 +24,8 @@ import sqlite3
 from datetime import datetime
 from pathlib import Path
 
+from li.config import INFLUENCE_INGERENCE_STATUS
+
 
 DEFAULT_DB_PATH = "data/corpus.db"
 
@@ -108,7 +110,12 @@ CREATE TABLE IF NOT EXISTS classifications (
     signature_symbolique TEXT,
     axes_lexicaux_nkili TEXT,
     narratif_structure TEXT,
-    commentaire_calibrage TEXT
+    commentaire_calibrage TEXT,
+    orchestration TEXT,
+    degre_orchestration TEXT,
+    enonciateur TEXT,
+    phrases_preuves TEXT,
+    axes_nkili_justification TEXT
 );
 """
 
@@ -339,6 +346,9 @@ _CLASSIF_SCALAR_COLUMNS = [
     "disarm_tactic_name",
     "disarm_justification",
     "disarm_confidence",
+    "orchestration",
+    "degre_orchestration",
+    "enonciateur",
     "salience_russe",
     "salience_panafricaniste",
     "salience_souverainiste",
@@ -349,6 +359,8 @@ _CLASSIF_SCALAR_COLUMNS = [
     "influence_ingerence_confidence",
     "signature_symbolique",
     "axes_lexicaux_nkili",
+    "phrases_preuves",
+    "axes_nkili_justification",
     "narratif_structure",
     "commentaire_calibrage",
 ]
@@ -392,6 +404,56 @@ def insert_classification(
         )
         conn.commit()
         return cursor.lastrowid
+
+
+def update_influence_fields(
+    conn: sqlite3.Connection,
+    classification_id: int,
+    statut: str,
+    justification: str | None,
+    confiance: str | None,
+) -> int:
+    """UPDATE partiel ciblé des 3 champs influence/ingérence d'UNE classification.
+
+    Corrige uniquement influence_ingerence_status / _justification / _confidence
+    de la ligne identifiée par `classification_id` (PK). Toutes les autres colonnes
+    (DISARM, saillances, axes Nkili…) restent inchangées. Aucune ligne n'est créée
+    ni dupliquée (UPDATE, pas INSERT).
+
+    Transactionnel sur la connexion fournie : commit si exactement 1 ligne modifiée,
+    rollback + ValueError sinon (ex. classification_id inexistant → rowcount 0).
+
+    `statut` est validé contre INFLUENCE_INGERENCE_STATUS (domaine aligné sur le
+    CHECK de la table) AVANT toute écriture : une valeur hors liste lève ValueError
+    sans qu'aucun UPDATE ne soit exécuté.
+
+    Cible par classification_id (PK), jamais par article_id, pour ne toucher qu'une
+    ligne précise (la table n'a pas de contrainte d'unicité article_id+classified_by).
+    """
+    if statut not in INFLUENCE_INGERENCE_STATUS:
+        raise ValueError(
+            f"update_influence_fields : statut invalide {statut!r} "
+            f"(attendu {sorted(INFLUENCE_INGERENCE_STATUS)})"
+        )
+
+    cursor = conn.execute(
+        """
+        UPDATE classifications
+           SET influence_ingerence_status = ?,
+               influence_ingerence_justification = ?,
+               influence_ingerence_confidence = ?
+         WHERE classification_id = ?
+        """,
+        (statut, justification, confiance, classification_id),
+    )
+    if cursor.rowcount != 1:
+        conn.rollback()
+        raise ValueError(
+            f"update_influence_fields : rowcount={cursor.rowcount} != 1 pour "
+            f"classification_id={classification_id} — rollback, aucune écriture."
+        )
+    conn.commit()
+    return cursor.rowcount
 
 
 def _row_to_classification_dict(row: sqlite3.Row) -> dict:
