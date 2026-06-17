@@ -210,8 +210,19 @@ __marimo__/
 exercices/
 
 
-# Base de données locales
+# Bases de données locales et leurs sauvegardes (OPSEC : ne jamais versionner)
 data/*.db
+# Toute base SQLite, où qu'elle soit (racine ou sous-dossier)
+*.db
+*.sqlite
+*.sqlite3
+/corpus.db
+# Tous les backups de base, quels que soient le séparateur (_ ou -) et l'emplacement
+*.bak_*
+*.backup-*
+data/*.bak_*
+data/*.backup-*
+data/corpus.db.backup-*
 
 # Corpus collectés (OPSEC)
 data/li_corpus/
