@@ -970,12 +970,37 @@ JUSTIFICATION: [deux phrases maximum]
 
 INFLUENCE_INGERENCE_PROMPT = CONTEXT_PROMPT + """
 
+INFORMATION TRANSMISE : la catégorie du producteur de cet article t'est
+indiquée en tête du contenu. Tu DOIS en tenir compte pour l'évaluation
+influence/ingérence, en particulier pour les producteurs catégorie A
+(origine dissimulée).
+
 TÂCHE : qualifier le contenu au regard de la distinction doctrinale influence légitime / ingérence caractérisée / zone grise (rapport CAPS-IRSEM 2018, Les manipulations de l'information).
 
 DÉFINITIONS :
-- INFLUENCE_LEGITIME : action informationnelle revendiquée d'un acteur dans l'espace public. Exemple : un média d'État AES qui porte ouvertement la position de la junte.
+- INFLUENCE_LEGITIME : action informationnelle revendiquée d'un acteur dans l'espace public. Exemple : un média d'État AES (catégorie B) qui porte ouvertement la position de la junte. Ne s'applique qu'aux producteurs dont l'origine n'est PAS dissimulée.
 - INGERENCE_CARACTERISEE : au moins un des quatre critères Viginum est rempli : contenu trompeur, diffusion artificielle, caractère étranger dissimulé, atteinte aux intérêts fondamentaux.
 - ZONE_GRISE : contenu dont le statut est ambigu (ex. contenu souverainiste local possiblement amplifié par une opération russe sans que l'amplification soit établie de façon décisive).
+
+DISTINCTION CRITIQUE — niveau du dispositif vs niveau du contenu cité :
+Le critère Viginum « caractère étranger dissimulé » s'évalue au niveau du
+DISPOSITIF DE DIFFUSION, pas seulement du contenu ou de la source citée.
+Un contenu peut citer une source ouvertement étrangère (ex. un ambassadeur
+russe nommé) tout en étant diffusé par un dispositif qui DISSIMULE son
+caractère étranger. C'est le cas des producteurs catégorie A (African
+Initiative et dérivés, afrinz.ru, canaux Telegram affiliés) : ils se
+présentent comme des agences de presse indépendantes alors qu'ils sont des
+actifs informationnels russes. Cette dissimulation du dispositif suffit à
+elle seule à remplir un critère Viginum (« caractère étranger dissimulé »),
+INDÉPENDAMMENT du fait que le contenu cité soit, lui, ouvertement attribué.
+
+RÈGLE D'APPLICATION :
+- Si le producteur est catégorie A (origine russe dissimulée derrière une façade d'indépendance), le critère « caractère étranger dissimulé » est rempli par construction. Cela EXCLUT le statut influence_legitime pour ces producteurs : un actif étranger dissimulé ne fait pas de l'influence revendiquée.
+- En revanche, le choix entre ingerence_caracterisee et zone_grise reste à TRANCHER selon le contenu de l'article lui-même. Retiens ingerence_caracterisee si, au-delà du canal dissimulé, le contenu présente aussi de la tromperie, de la distorsion factuelle, ou s'inscrit dans une amplification coordonnée manifeste. Retiens zone_grise si le seul élément d'ingérence est le canal dissimulé, l'article relayant par ailleurs une information factuelle sans manipulation propre de son contenu.
+- Ne classe jamais un producteur catégorie A en influence_legitime ; mais ne force pas ingerence_caracterisee si le contenu ne le justifie pas au-delà du canal. L'exemple d'influence_legitime (média d'État AES portant ouvertement la position de la junte) ne s'applique qu'aux producteurs catégorie B, dont l'origine n'est pas dissimulée.
+- Si le producteur est catégorie C (amplificateur coopté), n'applique AUCUN présupposé de statut lié à la catégorie : l'imputation à une opération russe est un résultat à établir sur preuve dans le contenu, non un a priori. Un producteur catégorie C n'est pas un média d'État ; ne classe jamais un producteur catégorie C en influence_legitime au seul motif qu'il relaie un contenu factuel ou institutionnel (annonces de victoires FAMa, communiqués officiels), ce relais ne suffisant pas à en faire une source institutionnelle.
+- Le statut d'un producteur catégorie C se TRANCHE selon le contenu de l'article lui-même. Retiens influence_legitime si le contenu relève d'une expression souverainiste ou panafricaniste authentique et assumée, sans marqueur d'amplification d'une opération étrangère. Retiens ingerence_caracterisee si le contenu amplifie manifestement une opération étrangère, par reprise d'éléments de langage russes canoniques (« multipolarité », « Occident collectif », « néocolonialisme monétaire »), renvoi ou sourcing explicite vers des actifs d'influence russes, ou alignement éditorial systématique sur leurs narratifs. Retiens zone_grise dans les cas mixtes ou lorsque les indices ne sont pas concluants.
+- Distinction décisive pour la catégorie C : le simple relais ou la retransmission d'une communication institutionnelle d'État (communiqué des FAMa ou de l'état-major, annonce ministérielle, compte rendu officiel, célébration protocolaire), même sans marqueur russe, ne constitue PAS une expression souverainiste authentique au sens ci-dessus. C'est une amplification de la communication d'État, à classer zone_grise. Ne retiens influence_legitime que lorsque le producteur exprime une prise de position PROPRE et argumentée, distincte de la simple retransmission d'un contenu institutionnel tiers.
 
 FORMAT DE RÉPONSE STRICT :
 STATUT: influence_legitime | ingerence_caracterisee | zone_grise
