@@ -105,6 +105,9 @@ RÈGLE D'APPLICATION :
 - Si le producteur est catégorie A (origine russe dissimulée derrière une façade d'indépendance), le critère « caractère étranger dissimulé » est rempli par construction. Cela EXCLUT le statut influence_legitime pour ces producteurs : un actif étranger dissimulé ne fait pas de l'influence revendiquée.
 - En revanche, le choix entre ingerence_caracterisee et zone_grise reste à TRANCHER selon le contenu de l'article lui-même. Retiens ingerence_caracterisee si, au-delà du canal dissimulé, le contenu présente aussi de la tromperie, de la distorsion factuelle, ou s'inscrit dans une amplification coordonnée manifeste. Retiens zone_grise si le seul élément d'ingérence est le canal dissimulé, l'article relayant par ailleurs une information factuelle sans manipulation propre de son contenu.
 - Ne classe jamais un producteur catégorie A en influence_legitime ; mais ne force pas ingerence_caracterisee si le contenu ne le justifie pas au-delà du canal. L'exemple d'influence_legitime (média d'État AES portant ouvertement la position de la junte) ne s'applique qu'aux producteurs catégorie B, dont l'origine n'est pas dissimulée.
+- Si le producteur est catégorie C (amplificateur coopté), n'applique AUCUN présupposé de statut lié à la catégorie : l'imputation à une opération russe est un résultat à établir sur preuve dans le contenu, non un a priori. Un producteur catégorie C n'est pas un média d'État ; ne classe jamais un producteur catégorie C en influence_legitime au seul motif qu'il relaie un contenu factuel ou institutionnel (annonces de victoires FAMa, communiqués officiels), ce relais ne suffisant pas à en faire une source institutionnelle.
+- Le statut d'un producteur catégorie C se TRANCHE selon le contenu de l'article lui-même. Retiens influence_legitime si le contenu relève d'une expression souverainiste ou panafricaniste authentique et assumée, sans marqueur d'amplification d'une opération étrangère. Retiens ingerence_caracterisee si le contenu amplifie manifestement une opération étrangère, par reprise d'éléments de langage russes canoniques (« multipolarité », « Occident collectif », « néocolonialisme monétaire »), renvoi ou sourcing explicite vers des actifs d'influence russes, ou alignement éditorial systématique sur leurs narratifs. Retiens zone_grise dans les cas mixtes ou lorsque les indices ne sont pas concluants.
+- Distinction décisive pour la catégorie C : le simple relais ou la retransmission d'une communication institutionnelle d'État (communiqué des FAMa ou de l'état-major, annonce ministérielle, compte rendu officiel, célébration protocolaire), même sans marqueur russe, ne constitue PAS une expression souverainiste authentique au sens ci-dessus. C'est une amplification de la communication d'État, à classer zone_grise. Ne retiens influence_legitime que lorsque le producteur exprime une prise de position PROPRE et argumentée, distincte de la simple retransmission d'un contenu institutionnel tiers.
 
 FORMAT DE RÉPONSE STRICT :
 STATUT: influence_legitime | ingerence_caracterisee | zone_grise
@@ -127,18 +130,20 @@ SELECT_SQL = """
     JOIN classifications c ON c.article_id = a.article_id AND c.classified_by = 'llm'
     JOIN entities e ON e.entity_id = a.entity_id
     WHERE a.in_classification_scope = 1
-      AND e.producer_category = 'A'
+      AND e.producer_category = :category
     ORDER BY a.article_id
 """
 
 
-def select_articles_categorieA(db_path: str, limit: int | None = None) -> list[dict]:
-    """Lignes llm de producteur A dans le scope. Lecture seule (mode=ro)."""
+def select_articles_categorieA(db_path: str, limit: int | None = None,
+                               category: str = "A") -> list[dict]:
+    """Lignes llm d'un producteur (catégorie paramétrable, défaut A) dans le
+    scope. Lecture seule (mode=ro)."""
     sql = SELECT_SQL + ("\n    LIMIT %d" % int(limit) if limit is not None else "")
     conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     try:
-        return [dict(r) for r in conn.execute(sql)]
+        return [dict(r) for r in conn.execute(sql, {"category": category})]
     finally:
         conn.close()
 
@@ -210,12 +215,13 @@ def _call_influence_with_retry(client, system, content):
 
 
 def run(db_path: str = DEFAULT_DB_PATH, apply: bool = False,
-        limit: int | None = None) -> dict:
-    articles = select_articles_categorieA(db_path, limit=limit)
+        limit: int | None = None, category: str = "A",
+        expected: int | None = None) -> dict:
+    articles = select_articles_categorieA(db_path, limit=limit, category=category)
     n = len(articles)
-    print(f"Articles catégorie A à réanalyser (scope=1 ∧ llm ∧ cat=A) : {n}")
-    if limit is None:
-        print("  (attendu 124 au 2026-06-17 — confirmer avant --apply)")
+    print(f"Articles catégorie {category} à réanalyser (scope=1 ∧ llm ∧ cat={category}) : {n}")
+    if limit is None and expected is not None:
+        print(f"  (attendu {expected} — confirmer avant --apply)")
 
     # ── DRY-RUN : aucun réseau, aucune écriture ──
     if not apply:
@@ -299,7 +305,7 @@ def run(db_path: str = DEFAULT_DB_PATH, apply: bool = False,
     finally:
         conn.close()
 
-    log_path = _write_log(ts, backup_path, updated, failed, n)
+    log_path = _write_log(ts, backup_path, updated, failed, n, category)
     print(f"\nRéanalyse terminée : {len(updated)} mis à jour, {len(failed)} échecs.")
     print(f"Log : {log_path}")
     return {
@@ -309,16 +315,16 @@ def run(db_path: str = DEFAULT_DB_PATH, apply: bool = False,
     }
 
 
-def _write_log(ts, backup_path, updated, failed, n) -> str:
+def _write_log(ts, backup_path, updated, failed, n, category="A") -> str:
     import os
     os.makedirs(OUTPUTS_DIR, exist_ok=True)
     log_path = os.path.join(
-        OUTPUTS_DIR, f"reanalyse_influence_categorieA_{ts.strftime('%Y%m%d_%H%M%S')}_log.md")
+        OUTPUTS_DIR, f"reanalyse_influence_categorie{category}_{ts.strftime('%Y%m%d_%H%M%S')}_log.md")
     n_change = sum(1 for u in updated if u["old"] != u["new"])
     lines = [
-        "# Log — Réanalyse statut influence, producteurs catégorie A",
+        f"# Log — Réanalyse statut influence, producteurs catégorie {category}",
         f"- exécuté le : {ts.isoformat()}",
-        f"- périmètre : in_classification_scope=1 ∧ classified_by='llm' ∧ producer_category='A' ({n})",
+        f"- périmètre : in_classification_scope=1 ∧ classified_by='llm' ∧ producer_category='{category}' ({n})",
         f"- backup pré-écriture : `{backup_path}`",
         f"- modèle : {MODEL}",
         f"- mis à jour : {len(updated)} | dont statut CHANGÉ : {n_change} | échecs : {len(failed)}",
@@ -349,10 +355,15 @@ def _main(argv: list[str] | None = None) -> int:
                         "Sans ce flag : dry-run sans réseau ni écriture.")
     p.add_argument("--limit", type=int, default=None,
                    help="limiter à N articles (test).")
+    p.add_argument("--category", default="A",
+                   help="catégorie producteur à réanalyser (défaut A).")
+    p.add_argument("--expected", type=int, default=None,
+                   help="effectif attendu (affiché pour confirmation avant --apply).")
     p.add_argument("--db", default=DEFAULT_DB_PATH)
     args = p.parse_args(argv)
 
-    summary = run(args.db, apply=args.apply, limit=args.limit)
+    summary = run(args.db, apply=args.apply, limit=args.limit,
+                  category=args.category, expected=args.expected)
     print(json.dumps(summary, ensure_ascii=False, indent=2))
     return 0
 
