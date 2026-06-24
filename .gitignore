@@ -255,6 +255,10 @@ data/entities.csv
 # Sauvegardes DB et CSV (contenu pro-AES, ne pas versionner)
 data/*.bak-*
 
+# Collecte manuelle FB (contenu pro-AES, ne pas versionner)
+data/COLLECTE_MANUELLE_4-JUIN.md
+data/Collecte_FB.csv
+
 # Source brute Notion des entités (la version propre est entities.csv, gitignorée)
 data/entities_notion_source.md
 
@@ -272,3 +276,8 @@ scripts/
 
 # Briefs Claude Code (artefacts opérationnels privés)
 briefs_claude_code/
+
+# Scripts d'opérations ponctuelles non réutilisables (local uniquement)
+li/exclusion_*.py
+li/test_v2*.py
+li/retest_*.py
